@@ -2,106 +2,216 @@
 
 ## Branch Strategy
 
+```
+upstream/master → master (mirror) → feature/* (testing) → PR → main (stable)
+```
+
+### Three-Branch System
+
+| Branch | Purpose | Tracks | Push To |
+|--------|---------|--------|---------|
+| `main` | Stable production version | `origin/main` | Your fork |
+| `master` | Mirror of upstream ComfyUI | `upstream/master` | Never push |
+| `feature/*` | Testing upstream updates | Created from `master` | Your fork |
+
 ### `main` branch (YOUR STABLE VERSION)
 - **Purpose:** Protected stable version that you run in production
-- **Tracks:** `origin/main` (your fork)
-- **Protection:** GitHub branch protection enabled, requires PR for changes
-- **Never:** Force push, direct commits, or fast-forward merges
-- **Contains:** Your customizations (external_packages/, modified requirements.txt, etc.)
+- **Contains:** Your customizations (external_packages/, modified configs, etc.)
+- **Protection:** Only updated via merged PRs
+- **Rule:** Never commit directly, never force push
 
 ### `master` branch (UPSTREAM MIRROR)
-- **Purpose:** Local mirror of official ComfyUI
+- **Purpose:** Read-only mirror of official ComfyUI
 - **Tracks:** `upstream/master` (comfyanonymous/ComfyUI)
-- **Update:** `git checkout master && git pull` (fast-forward only)
-- **Never:** Commit directly to this branch
-- **Purpose:** Convenient reference for what's in upstream
+- **Update:** `git checkout master && git pull`
+- **Rule:** Never commit to this branch, only pull from upstream
+
+### `feature/*` branches (TESTING GROUND)
+- **Purpose:** Test upstream updates before merging to main
+- **Created from:** `master` (after syncing with upstream)
+- **Naming:** `feature/update-YYYY-MM-DD` or `feature/test-<description>`
+- **Rule:** Disposable - delete after PR merged or abandoned
+
+---
 
 ## Update Process
 
-When ComfyUI releases new updates:
+### When ComfyUI releases new updates:
 
-1. **Update master mirror:**
-   ```bash
-   git checkout master
-   git pull  # Fast-forward from upstream/master
-   ```
+**Step 1: Sync master with upstream**
+```bash
+git checkout master
+git pull
+```
 
-2. **Create update branch:**
-   ```bash
-   git checkout main
-   git checkout -b update-YYYY-MM-DD
-   ```
+**Step 2: Create feature branch for testing**
+```bash
+git checkout -b feature/update-$(date +%Y-%m-%d) master
+```
 
-3. **Merge upstream changes:**
-   ```bash
-   git merge master
-   ```
+**Step 3: Test locally**
+```powershell
+# In Windows PowerShell
+cd D:\repos\ComfyUI
+$env:NUMEXPR_MAX_THREADS = "32"
+.venv\Scripts\python.exe main.py
+```
+- Run your workflows
+- Check for errors
+- Verify custom nodes work
 
-   Handle conflicts if any (especially requirements.txt).
+**Step 4a: If tests PASS**
+```bash
+# Push feature branch
+git push -u origin feature/update-YYYY-MM-DD
 
-4. **Push update branch:**
-   ```bash
-   git push -u origin update-YYYY-MM-DD
-   ```
+# Create PR on GitHub: feature/update-YYYY-MM-DD → main
+# Review changes in GitHub UI
+# Merge PR
+# Delete feature branch
+git checkout main
+git pull
+git branch -d feature/update-YYYY-MM-DD
+```
 
-5. **Create PR on GitHub:**
-   - Go to https://github.com/YOURUSERNAME/ComfyUI
-   - Create PR: `update-YYYY-MM-DD` → `main`
-   - Review all changes in GitHub UI
-   - Check for breaking changes in requirements.txt
-   - Test locally before merging
+**Step 4b: If tests FAIL**
+```bash
+# Option A: Fix issues on feature branch
+# Make fixes, commit, test again
 
-6. **Test locally:**
-   ```bash
-   git checkout update-YYYY-MM-DD
-   # Start ComfyUI and test workflows
-   ```
+# Option B: Abandon the update
+git checkout main
+git branch -D feature/update-YYYY-MM-DD
+# Wait for upstream to fix, or investigate the issue
+```
 
-7. **Merge PR when safe:**
-   - If tests pass → Merge PR on GitHub
-   - If tests fail → Fix issues in update branch, push, test again
+---
 
-8. **Clean up:**
-   ```bash
-   git checkout main
-   git pull
-   git branch -d update-YYYY-MM-DD
-   git push origin --delete update-YYYY-MM-DD
-   ```
+## Quick Reference Commands
+
+### Daily workflow
+```bash
+# Check current branch
+git branch
+
+# Switch to main (stable)
+git checkout main
+
+# Switch to master (upstream mirror)
+git checkout master
+```
+
+### Sync upstream
+```bash
+git checkout master
+git pull
+# master now matches upstream/master
+```
+
+### Test an update
+```bash
+git checkout master
+git pull
+git checkout -b feature/update-$(date +%Y-%m-%d)
+# Test in Windows...
+# If good: push and PR
+# If bad: abandon branch
+```
+
+### Check what's new in upstream
+```bash
+git checkout master
+git pull
+git log main..master --oneline
+# Shows commits in master not yet in main
+```
+
+### Compare your main vs upstream
+```bash
+git diff main..master --stat
+# Shows files that differ between your stable and upstream
+```
+
+---
 
 ## Critical Files to Watch
 
 When reviewing update PRs, pay special attention to:
 
-- `requirements.txt` - Package version jumps can break dependencies
-- `comfy/model_management.py` - Memory management changes (async offload, etc.)
-- `comfy/ops.py` - Core operations
-- `nodes.py` - Node loading logic
-- `server.py` - API changes
+| File | Why |
+|------|-----|
+| `requirements.txt` | Package version changes can break dependencies |
+| `comfy/model_management.py` | Memory management, async offload changes |
+| `comfy/ops.py` | Core operations |
+| `nodes.py` | Node loading logic |
+| `server.py` | API changes |
 
-## Breaking Changes to Avoid
+---
 
-Known issues from previous updates:
-- **Async offloading enabled by default** - Causes workflow failures on some systems
-- **Large package version jumps** - transformers, workflow-templates
-- **New required packages** - triton-windows, sageattention (may not install cleanly)
+## Known Breaking Changes to Avoid
+
+Issues from previous updates (November 2025):
+
+| Change | Impact | Solution |
+|--------|--------|----------|
+| Async offloading enabled by default | Workflow crashes | Use `--disable-async-offload` flag |
+| workflow-templates 0.2→0.7 | Template directory missing | Pin to working version |
+| transformers 4.37→4.50 | Incompatibilities | Test before updating |
+
+---
+
+## Your Local Customizations
+
+Files preserved in `main` that differ from upstream:
+
+- `external_packages/` - sageattention wheel (pip install fails from git)
+- `docs/plans/` - Implementation documentation
+- `.gitattributes` - Line ending normalization
+
+When merging upstream updates, ensure these are preserved.
+
+---
 
 ## Emergency Rollback
 
-If an update breaks production:
+If an update breaks production after merging to main:
 
 ```bash
-# Identify last working commit
-git log --oneline main
+# Find last working commit
+git log --oneline main -10
 
-# Create rollback branch
-git checkout -b rollback-YYYY-MM-DD main^
-
-# Push and create PR
-git push -u origin rollback-YYYY-MM-DD
-# Create PR: rollback-YYYY-MM-DD → main
+# Create rollback PR
+git checkout -b rollback-$(date +%Y-%m-%d) main~1
+git push -u origin rollback-$(date +%Y-%m-%d)
+# Create PR: rollback → main
+# Merge immediately
 ```
 
 ---
 
-*Last updated: 2025-11-30*
+## Remote Configuration
+
+```
+origin    git@github.com:trakru/ComfyUI.git     (your fork - push here)
+upstream  https://github.com/comfyanonymous/ComfyUI  (official - pull only)
+```
+
+### Verify remotes
+```bash
+git remote -v
+```
+
+### Verify branch tracking
+```bash
+git branch -vv
+```
+
+Expected output:
+```
+* main   [origin/main] ...
+  master [upstream/master] ...
+```
+
+---
+
+*Last updated: 2025-12-01*
