@@ -1,6 +1,13 @@
 from typing import Optional
 
-from comfy_api_nodes.apis import GeminiGenerationConfig, GeminiContent, GeminiSafetySetting, GeminiSystemInstructionContent, GeminiTool, GeminiVideoMetadata
+from comfy_api_nodes.apis import (
+    GeminiGenerationConfig,
+    GeminiContent,
+    GeminiSafetySetting,
+    GeminiSystemInstructionContent,
+    GeminiTool,
+    GeminiVideoMetadata,
+)
 from pydantic import BaseModel
 
 

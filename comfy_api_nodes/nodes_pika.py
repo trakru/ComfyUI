@@ -3,6 +3,7 @@ Pika x ComfyUI API Nodes
 
 Pika API docs: https://pika-827374fb.mintlify.app/api-reference
 """
+
 from __future__ import annotations
 
 from io import BytesIO
@@ -46,8 +47,12 @@ async def execute_task(
         cls,
         ApiEndpoint(path=f"{PATH_VIDEO_GET}/{task_id}"),
         response_model=pika_defs.PikaVideoResponse,
-        status_extractor=lambda response: (response.status.value if response.status else None),
-        progress_extractor=lambda response: (response.progress if hasattr(response, "progress") else None),
+        status_extractor=lambda response: (
+            response.status.value if response.status else None
+        ),
+        progress_extractor=lambda response: (
+            response.progress if hasattr(response, "progress") else None
+        ),
         estimated_duration=60,
         max_poll_attempts=240,
     )
@@ -143,7 +148,7 @@ class PikaTextToVideoNode(IO.ComfyNode):
                     max=2.5,
                     default=1.7777777777777777,
                     tooltip="Aspect ratio (width / height)",
-                )
+                ),
             ],
             outputs=[IO.Video.Output()],
             hidden=[
@@ -343,10 +348,12 @@ class PikAdditionsNode(IO.ComfyNode):
             "video": ("video.mp4", video_bytes_io, "video/mp4"),
             "image": ("image.png", image_bytes_io, "image/png"),
         }
-        pika_request_data = pika_defs.PikaBodyGeneratePikadditionsGeneratePikadditionsPost(
-            promptText=prompt_text,
-            negativePrompt=negative_prompt,
-            seed=seed,
+        pika_request_data = (
+            pika_defs.PikaBodyGeneratePikadditionsGeneratePikadditionsPost(
+                promptText=prompt_text,
+                negativePrompt=negative_prompt,
+                seed=seed,
+            )
         )
         initial_operation = await sync_op(
             cls,
@@ -384,7 +391,13 @@ class PikaSwapsNode(IO.ComfyNode):
                 ),
                 IO.String.Input("prompt_text", multiline=True, optional=True),
                 IO.String.Input("negative_prompt", multiline=True, optional=True),
-                IO.Int.Input("seed", min=0, max=0xFFFFFFFF, control_after_generate=True, optional=True),
+                IO.Int.Input(
+                    "seed",
+                    min=0,
+                    max=0xFFFFFFFF,
+                    control_after_generate=True,
+                    optional=True,
+                ),
                 IO.String.Input(
                     "region_to_modify",
                     multiline=True,
@@ -419,7 +432,11 @@ class PikaSwapsNode(IO.ComfyNode):
             "video": ("video.mp4", video_bytes_io, "video/mp4"),
         }
         if mask is not None:
-            pika_files["modifyRegionMask"] = ("mask.png", tensor_to_bytesio(mask), "image/png")
+            pika_files["modifyRegionMask"] = (
+                "mask.png",
+                tensor_to_bytesio(mask),
+                "image/png",
+            )
         if image is not None:
             pika_files["image"] = ("image.png", tensor_to_bytesio(image), "image/png")
 
@@ -451,13 +468,17 @@ class PikaffectsNode(IO.ComfyNode):
             description="Generate a video with a specific Pikaffect. Supported Pikaffects: Cake-ify, Crumble, Crush, Decapitate, Deflate, Dissolve, Explode, Eye-pop, Inflate, Levitate, Melt, Peel, Poke, Squish, Ta-da, Tear",
             category="api node/video/Pika",
             inputs=[
-                IO.Image.Input("image", tooltip="The reference image to apply the Pikaffect to."),
+                IO.Image.Input(
+                    "image", tooltip="The reference image to apply the Pikaffect to."
+                ),
                 IO.Combo.Input(
                     "pikaffect", options=pika_defs.Pikaffect, default="Cake-ify"
                 ),
                 IO.String.Input("prompt_text", multiline=True),
                 IO.String.Input("negative_prompt", multiline=True),
-                IO.Int.Input("seed", min=0, max=0xFFFFFFFF, control_after_generate=True),
+                IO.Int.Input(
+                    "seed", min=0, max=0xFFFFFFFF, control_after_generate=True
+                ),
             ],
             outputs=[IO.Video.Output()],
             hidden=[
@@ -530,7 +551,10 @@ class PikaStartEndFrameNode(IO.ComfyNode):
     ) -> IO.NodeOutput:
         validate_string(prompt_text, field_name="prompt_text", min_length=1)
         pika_files = [
-            ("keyFrames", ("image_start.png", tensor_to_bytesio(image_start), "image/png")),
+            (
+                "keyFrames",
+                ("image_start.png", tensor_to_bytesio(image_start), "image/png"),
+            ),
             ("keyFrames", ("image_end.png", tensor_to_bytesio(image_end), "image/png")),
         ]
         initial_operation = await sync_op(

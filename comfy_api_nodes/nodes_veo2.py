@@ -146,7 +146,10 @@ class VeoVideoGenerationNode(IO.ComfyNode):
         if image is not None:
             image_base64 = tensor_to_base64_string(image)
             if image_base64:
-                instance["image"] = {"bytesBase64Encoded": image_base64, "mimeType": "image/png"}
+                instance["image"] = {
+                    "bytesBase64Encoded": image_base64,
+                    "mimeType": "image/png",
+                }
 
         instances.append(instance)
 
@@ -197,14 +200,15 @@ class VeoVideoGenerationNode(IO.ComfyNode):
         # Now check for errors in the final response
         # Check for error in poll response
         if poll_response.error:
-            raise Exception(f"Veo API error: {poll_response.error.message} (code: {poll_response.error.code})")
+            raise Exception(
+                f"Veo API error: {poll_response.error.message} (code: {poll_response.error.code})"
+            )
 
         # Check for RAI filtered content
         if (
             hasattr(poll_response.response, "raiMediaFilteredCount")
             and poll_response.response.raiMediaFilteredCount > 0
         ):
-
             # Extract reason message if available
             if (
                 hasattr(poll_response.response, "raiMediaFilteredReasons")
@@ -228,7 +232,9 @@ class VeoVideoGenerationNode(IO.ComfyNode):
 
             # Check if video is provided as base64 or URL
             if hasattr(video, "bytesBase64Encoded") and video.bytesBase64Encoded:
-                return IO.NodeOutput(VideoFromFile(BytesIO(base64.b64decode(video.bytesBase64Encoded))))
+                return IO.NodeOutput(
+                    VideoFromFile(BytesIO(base64.b64decode(video.bytesBase64Encoded)))
+                )
 
             if hasattr(video, "gcsUri") and video.gcsUri:
                 return IO.NodeOutput(await download_url_to_video_output(video.gcsUri))

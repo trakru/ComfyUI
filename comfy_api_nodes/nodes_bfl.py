@@ -131,8 +131,14 @@ class FluxProUltraImageNode(IO.ComfyNode):
                 seed=seed,
                 aspect_ratio=aspect_ratio,
                 raw=raw,
-                image_prompt=(image_prompt if image_prompt is None else tensor_to_base64_string(image_prompt)),
-                image_prompt_strength=(None if image_prompt is None else round(image_prompt_strength, 2)),
+                image_prompt=(
+                    image_prompt
+                    if image_prompt is None
+                    else tensor_to_base64_string(image_prompt)
+                ),
+                image_prompt_strength=(
+                    None if image_prompt is None else round(image_prompt_strength, 2)
+                ),
             ),
         )
         response = await poll_op(
@@ -150,7 +156,9 @@ class FluxProUltraImageNode(IO.ComfyNode):
             ],
             queued_statuses=[],
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(response.result["sample"]))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(response.result["sample"])
+        )
 
 
 class FluxKontextProImageNode(IO.ComfyNode):
@@ -248,7 +256,11 @@ class FluxKontextProImageNode(IO.ComfyNode):
                 steps=steps,
                 seed=seed,
                 aspect_ratio=aspect_ratio,
-                input_image=(input_image if input_image is None else tensor_to_base64_string(input_image)),
+                input_image=(
+                    input_image
+                    if input_image is None
+                    else tensor_to_base64_string(input_image)
+                ),
             ),
         )
         response = await poll_op(
@@ -266,7 +278,9 @@ class FluxKontextProImageNode(IO.ComfyNode):
             ],
             queued_statuses=[],
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(response.result["sample"]))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(response.result["sample"])
+        )
 
 
 class FluxKontextMaxImageNode(FluxKontextProImageNode):
@@ -363,7 +377,11 @@ class FluxProImageNode(IO.ComfyNode):
         image_prompt=None,
         # image_prompt_strength=0.1,
     ) -> IO.NodeOutput:
-        image_prompt = image_prompt if image_prompt is None else tensor_to_base64_string(image_prompt)
+        image_prompt = (
+            image_prompt
+            if image_prompt is None
+            else tensor_to_base64_string(image_prompt)
+        )
         initial_response = await sync_op(
             cls,
             ApiEndpoint(
@@ -395,7 +413,9 @@ class FluxProImageNode(IO.ComfyNode):
             ],
             queued_statuses=[],
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(response.result["sample"]))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(response.result["sample"])
+        )
 
 
 class FluxProExpandNode(IO.ComfyNode):
@@ -531,7 +551,9 @@ class FluxProExpandNode(IO.ComfyNode):
             ],
             queued_statuses=[],
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(response.result["sample"]))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(response.result["sample"])
+        )
 
 
 class FluxProFillNode(IO.ComfyNode):
@@ -618,7 +640,9 @@ class FluxProFillNode(IO.ComfyNode):
                 steps=steps,
                 guidance=guidance,
                 seed=seed,
-                image=tensor_to_base64_string(image[:, :, :, :3]),  # make sure image will have alpha channel removed
+                image=tensor_to_base64_string(
+                    image[:, :, :, :3]
+                ),  # make sure image will have alpha channel removed
                 mask=mask,
             ),
         )
@@ -637,7 +661,9 @@ class FluxProFillNode(IO.ComfyNode):
             ],
             queued_statuses=[],
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(response.result["sample"]))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(response.result["sample"])
+        )
 
 
 class BFLExtension(ComfyExtension):

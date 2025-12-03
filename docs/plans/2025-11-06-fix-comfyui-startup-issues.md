@@ -1207,4 +1207,3 @@ Re-run verification scripts to ensure fixes still work.
 - LayerStyle Issue: https://github.com/chflame163/ComfyUI_LayerStyle/issues/5
 - ONNX Runtime GPU: https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html
 ```
-

@@ -92,7 +92,9 @@ def create_image_parts(image_input: torch.Tensor) -> list[GeminiPart]:
     return image_parts
 
 
-def get_parts_by_type(response: GeminiGenerateContentResponse, part_type: Literal["text"] | str) -> list[GeminiPart]:
+def get_parts_by_type(
+    response: GeminiGenerateContentResponse, part_type: Literal["text"] | str
+) -> list[GeminiPart]:
     """
     Filter response parts by their type.
 
@@ -107,7 +109,11 @@ def get_parts_by_type(response: GeminiGenerateContentResponse, part_type: Litera
     for part in response.candidates[0].content.parts:
         if part_type == "text" and hasattr(part, "text") and part.text:
             parts.append(part)
-        elif hasattr(part, "inlineData") and part.inlineData and part.inlineData.mimeType == part_type:
+        elif (
+            hasattr(part, "inlineData")
+            and part.inlineData
+            and part.inlineData.mimeType == part_type
+        ):
             parts.append(part)
         # Skip parts that don't match the requested type
     return parts
@@ -222,7 +228,9 @@ class GeminiNode(IO.ComfyNode):
     def create_video_parts(cls, video_input: Input.Video) -> list[GeminiPart]:
         """Convert video input to Gemini API compatible parts."""
 
-        base_64_string = video_to_base64_string(video_input, container_format=VideoContainer.MP4, codec=VideoCodec.H264)
+        base_64_string = video_to_base64_string(
+            video_input, container_format=VideoContainer.MP4, codec=VideoCodec.H264
+        )
         return [
             GeminiPart(
                 inlineData=GeminiInlineData(
@@ -392,7 +400,11 @@ class GeminiInputFiles(IO.ComfyNode):
 
     @classmethod
     def create_file_part(cls, file_path: str) -> GeminiPart:
-        mime_type = GeminiMimeType.application_pdf if file_path.endswith(".pdf") else GeminiMimeType.text_plain
+        mime_type = (
+            GeminiMimeType.application_pdf
+            if file_path.endswith(".pdf")
+            else GeminiMimeType.text_plain
+        )
         # Use base64 string directly, not the data URI
         with open(file_path, "rb") as f:
             file_content = f.read()
@@ -406,7 +418,9 @@ class GeminiInputFiles(IO.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, file: str, GEMINI_INPUT_FILES: Optional[list[GeminiPart]] = None) -> IO.NodeOutput:
+    def execute(
+        cls, file: str, GEMINI_INPUT_FILES: Optional[list[GeminiPart]] = None
+    ) -> IO.NodeOutput:
         """Loads and formats input files for Gemini API."""
         if GEMINI_INPUT_FILES is None:
             GEMINI_INPUT_FILES = []
@@ -416,7 +430,6 @@ class GeminiInputFiles(IO.ComfyNode):
 
 
 class GeminiImage(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -463,7 +476,19 @@ class GeminiImage(IO.ComfyNode):
                 ),
                 IO.Combo.Input(
                     "aspect_ratio",
-                    options=["auto", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
+                    options=[
+                        "auto",
+                        "1:1",
+                        "2:3",
+                        "3:2",
+                        "3:4",
+                        "4:3",
+                        "4:5",
+                        "5:4",
+                        "9:16",
+                        "16:9",
+                        "21:9",
+                    ],
                     default="auto",
                     tooltip="Defaults to matching the output image size to that of your input image, "
                     "or otherwise generates 1:1 squares.",

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
+# ruff: noqa: T201
 """Verify opencv-contrib-python installation and guidedFilter availability."""
 
 import sys
+
 
 def verify_opencv():
     """Check if opencv-contrib-python is properly installed."""
@@ -9,6 +11,7 @@ def verify_opencv():
 
     try:
         import cv2
+
         # Try to get version, but don't fail if not available
         try:
             version = cv2.__version__
@@ -21,6 +24,7 @@ def verify_opencv():
 
     try:
         from cv2 import ximgproc
+
         print("[OK] cv2.ximgproc module imported successfully")
     except ImportError as e:
         print(f"[FAIL] Failed to import cv2.ximgproc: {e}")
@@ -28,7 +32,7 @@ def verify_opencv():
 
     try:
         # Check if guidedFilter is available
-        if hasattr(ximgproc, 'guidedFilter'):
+        if hasattr(ximgproc, "guidedFilter"):
             print("[OK] guidedFilter function is available")
         else:
             print("[FAIL] guidedFilter function not found in ximgproc")
@@ -39,6 +43,7 @@ def verify_opencv():
 
     print("\n[SUCCESS] All opencv-contrib-python components verified successfully!")
     return True
+
 
 if __name__ == "__main__":
     success = verify_opencv()

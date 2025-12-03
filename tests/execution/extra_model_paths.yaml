@@ -1,4 +1,3 @@
 # Config for testing nodes
 testing:
     custom_nodes: testing_nodes
-

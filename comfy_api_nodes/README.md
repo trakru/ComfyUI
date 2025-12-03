@@ -1,6 +1,6 @@
 # ComfyUI API Nodes
 
-## Introduction 
+## Introduction
 
 Below are a collection of nodes that work by calling external APIs. More information available in our [docs](https://docs.comfy.org/tutorials/api-nodes/overview).
 
@@ -10,7 +10,7 @@ While developing, you should be testing against the Staging environment. To test
 
 **Install ComfyUI_frontend**
 
-Follow the instructions [here](https://github.com/Comfy-Org/ComfyUI_frontend) to start the frontend server. By default, it will connect to Staging authentication. 
+Follow the instructions [here](https://github.com/Comfy-Org/ComfyUI_frontend) to start the frontend server. By default, it will connect to Staging authentication.
 
 > **Hint:** If you use --front-end-version argument for ComfyUI, it will use production authentication.
 
@@ -22,7 +22,7 @@ To authenticate to staging, please login and then ask one of Comfy Org team to w
 
 API stubs are generated through automatic codegen tools from OpenAPI definitions. Since the Comfy Org OpenAPI definition contains many things from the Comfy Registry as well, we use redocly/cli to filter out only the paths relevant for API nodes.
 
-### Redocly Instructions 
+### Redocly Instructions
 
 **Tip**
 When developing locally, use the `redocly-dev.yaml` file to generate pydantic models. This lets you use stubs for APIs that are not marked `Released` yet.
@@ -47,7 +47,7 @@ datamodel-codegen --use-subclass-enum --field-constraints --strict-types bytes -
 
 Before merging to comfyanonymous/ComfyUI master, follow these steps:
 
-1. Add the "Released" tag to the ComfyUI OpenAPI yaml file for each endpoint you are using in the nodes. 
+1. Add the "Released" tag to the ComfyUI OpenAPI yaml file for each endpoint you are using in the nodes.
 1. Make sure the ComfyUI API is deployed to prod with your changes.
 1. Run the code generation again with `redocly.yaml` and the production OpenAPI yaml file.
 

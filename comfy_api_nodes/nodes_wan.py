@@ -45,7 +45,9 @@ class Image2VideoInputField(BaseModel):
 
 class Txt2ImageParametersField(BaseModel):
     size: str = Field(...)
-    n: int = Field(1, description="Number of images to generate.")  # we support only value=1
+    n: int = Field(
+        1, description="Number of images to generate."
+    )  # we support only value=1
     seed: int = Field(..., ge=0, le=2147483647)
     prompt_extend: bool = Field(True)
     watermark: bool = Field(True)
@@ -53,7 +55,9 @@ class Txt2ImageParametersField(BaseModel):
 
 class Image2ImageParametersField(BaseModel):
     size: Optional[str] = Field(None)
-    n: int = Field(1, description="Number of images to generate.")  # we support only value=1
+    n: int = Field(
+        1, description="Number of images to generate."
+    )  # we support only value=1
     seed: int = Field(..., ge=0, le=2147483647)
     watermark: bool = Field(True)
 
@@ -108,7 +112,9 @@ class TaskCreationOutputField(BaseModel):
 class TaskCreationResponse(BaseModel):
     output: Optional[TaskCreationOutputField] = Field(None)
     request_id: str = Field(...)
-    code: Optional[str] = Field(None, description="The error code of the failed request.")
+    code: Optional[str] = Field(
+        None, description="The error code of the failed request."
+    )
     message: Optional[str] = Field(None, description="Details of the failed request.")
 
 
@@ -238,11 +244,16 @@ class WanTextToImageApi(IO.ComfyNode):
     ):
         initial_response = await sync_op(
             cls,
-            ApiEndpoint(path="/proxy/wan/api/v1/services/aigc/text2image/image-synthesis", method="POST"),
+            ApiEndpoint(
+                path="/proxy/wan/api/v1/services/aigc/text2image/image-synthesis",
+                method="POST",
+            ),
             response_model=TaskCreationResponse,
             data=Text2ImageTaskCreationRequest(
                 model=model,
-                input=Text2ImageInputField(prompt=prompt, negative_prompt=negative_prompt),
+                input=Text2ImageInputField(
+                    prompt=prompt, negative_prompt=negative_prompt
+                ),
                 parameters=Txt2ImageParametersField(
                     size=f"{width}*{height}",
                     seed=seed,
@@ -252,16 +263,22 @@ class WanTextToImageApi(IO.ComfyNode):
             ),
         )
         if not initial_response.output:
-            raise Exception(f"Unknown error occurred: {initial_response.code} - {initial_response.message}")
+            raise Exception(
+                f"Unknown error occurred: {initial_response.code} - {initial_response.message}"
+            )
         response = await poll_op(
             cls,
-            ApiEndpoint(path=f"/proxy/wan/api/v1/tasks/{initial_response.output.task_id}"),
+            ApiEndpoint(
+                path=f"/proxy/wan/api/v1/tasks/{initial_response.output.task_id}"
+            ),
             response_model=ImageTaskStatusResponse,
             status_extractor=lambda x: x.output.task_status,
             estimated_duration=9,
             poll_interval=3,
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(str(response.output.results[0].url)))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(str(response.output.results[0].url))
+        )
 
 
 class WanImageToImageApi(IO.ComfyNode):
@@ -360,14 +377,22 @@ class WanImageToImageApi(IO.ComfyNode):
             raise ValueError(f"Expected 1 or 2 input images, got {n_images}.")
         images = []
         for i in image:
-            images.append("data:image/png;base64," + tensor_to_base64_string(i, total_pixels=4096 * 4096))
+            images.append(
+                "data:image/png;base64,"
+                + tensor_to_base64_string(i, total_pixels=4096 * 4096)
+            )
         initial_response = await sync_op(
             cls,
-            ApiEndpoint(path="/proxy/wan/api/v1/services/aigc/image2image/image-synthesis", method="POST"),
+            ApiEndpoint(
+                path="/proxy/wan/api/v1/services/aigc/image2image/image-synthesis",
+                method="POST",
+            ),
             response_model=TaskCreationResponse,
             data=Image2ImageTaskCreationRequest(
                 model=model,
-                input=Image2ImageInputField(prompt=prompt, negative_prompt=negative_prompt, images=images),
+                input=Image2ImageInputField(
+                    prompt=prompt, negative_prompt=negative_prompt, images=images
+                ),
                 parameters=Image2ImageParametersField(
                     # size=f"{width}*{height}",
                     seed=seed,
@@ -376,16 +401,22 @@ class WanImageToImageApi(IO.ComfyNode):
             ),
         )
         if not initial_response.output:
-            raise Exception(f"Unknown error occurred: {initial_response.code} - {initial_response.message}")
+            raise Exception(
+                f"Unknown error occurred: {initial_response.code} - {initial_response.message}"
+            )
         response = await poll_op(
             cls,
-            ApiEndpoint(path=f"/proxy/wan/api/v1/tasks/{initial_response.output.task_id}"),
+            ApiEndpoint(
+                path=f"/proxy/wan/api/v1/tasks/{initial_response.output.task_id}"
+            ),
             response_model=ImageTaskStatusResponse,
             status_extractor=lambda x: x.output.task_status,
             estimated_duration=42,
             poll_interval=4,
         )
-        return IO.NodeOutput(await download_url_to_image_tensor(str(response.output.results[0].url)))
+        return IO.NodeOutput(
+            await download_url_to_image_tensor(str(response.output.results[0].url))
+        )
 
 
 class WanTextToVideoApi(IO.ComfyNode):
@@ -510,15 +541,22 @@ class WanTextToVideoApi(IO.ComfyNode):
         audio_url = None
         if audio is not None:
             validate_audio_duration(audio, 3.0, 29.0)
-            audio_url = "data:audio/mp3;base64," + audio_to_base64_string(audio, "mp3", "libmp3lame")
+            audio_url = "data:audio/mp3;base64," + audio_to_base64_string(
+                audio, "mp3", "libmp3lame"
+            )
 
         initial_response = await sync_op(
             cls,
-            ApiEndpoint(path="/proxy/wan/api/v1/services/aigc/video-generation/video-synthesis", method="POST"),
+            ApiEndpoint(
+                path="/proxy/wan/api/v1/services/aigc/video-generation/video-synthesis",
+                method="POST",
+            ),
             response_model=TaskCreationResponse,
             data=Text2VideoTaskCreationRequest(
                 model=model,
-                input=Text2VideoInputField(prompt=prompt, negative_prompt=negative_prompt, audio_url=audio_url),
+                input=Text2VideoInputField(
+                    prompt=prompt, negative_prompt=negative_prompt, audio_url=audio_url
+                ),
                 parameters=Text2VideoParametersField(
                     size=f"{width}*{height}",
                     duration=duration,
@@ -530,16 +568,22 @@ class WanTextToVideoApi(IO.ComfyNode):
             ),
         )
         if not initial_response.output:
-            raise Exception(f"Unknown error occurred: {initial_response.code} - {initial_response.message}")
+            raise Exception(
+                f"Unknown error occurred: {initial_response.code} - {initial_response.message}"
+            )
         response = await poll_op(
             cls,
-            ApiEndpoint(path=f"/proxy/wan/api/v1/tasks/{initial_response.output.task_id}"),
+            ApiEndpoint(
+                path=f"/proxy/wan/api/v1/tasks/{initial_response.output.task_id}"
+            ),
             response_model=VideoTaskStatusResponse,
             status_extractor=lambda x: x.output.task_status,
             estimated_duration=120 * int(duration / 5),
             poll_interval=6,
         )
-        return IO.NodeOutput(await download_url_to_video_output(response.output.video_url))
+        return IO.NodeOutput(
+            await download_url_to_video_output(response.output.video_url)
+        )
 
 
 class WanImageToVideoApi(IO.ComfyNode):
@@ -656,19 +700,29 @@ class WanImageToVideoApi(IO.ComfyNode):
     ):
         if get_number_of_images(image) != 1:
             raise ValueError("Exactly one input image is required.")
-        image_url = "data:image/png;base64," + tensor_to_base64_string(image, total_pixels=2000 * 2000)
+        image_url = "data:image/png;base64," + tensor_to_base64_string(
+            image, total_pixels=2000 * 2000
+        )
         audio_url = None
         if audio is not None:
             validate_audio_duration(audio, 3.0, 29.0)
-            audio_url = "data:audio/mp3;base64," + audio_to_base64_string(audio, "mp3", "libmp3lame")
+            audio_url = "data:audio/mp3;base64," + audio_to_base64_string(
+                audio, "mp3", "libmp3lame"
+            )
         initial_response = await sync_op(
             cls,
-            ApiEndpoint(path="/proxy/wan/api/v1/services/aigc/video-generation/video-synthesis", method="POST"),
+            ApiEndpoint(
+                path="/proxy/wan/api/v1/services/aigc/video-generation/video-synthesis",
+                method="POST",
+            ),
             response_model=TaskCreationResponse,
             data=Image2VideoTaskCreationRequest(
                 model=model,
                 input=Image2VideoInputField(
-                    prompt=prompt, negative_prompt=negative_prompt, img_url=image_url, audio_url=audio_url
+                    prompt=prompt,
+                    negative_prompt=negative_prompt,
+                    img_url=image_url,
+                    audio_url=audio_url,
                 ),
                 parameters=Image2VideoParametersField(
                     resolution=resolution,
@@ -681,16 +735,22 @@ class WanImageToVideoApi(IO.ComfyNode):
             ),
         )
         if not initial_response.output:
-            raise Exception(f"Unknown error occurred: {initial_response.code} - {initial_response.message}")
+            raise Exception(
+                f"Unknown error occurred: {initial_response.code} - {initial_response.message}"
+            )
         response = await poll_op(
             cls,
-            ApiEndpoint(path=f"/proxy/wan/api/v1/tasks/{initial_response.output.task_id}"),
+            ApiEndpoint(
+                path=f"/proxy/wan/api/v1/tasks/{initial_response.output.task_id}"
+            ),
             response_model=VideoTaskStatusResponse,
             status_extractor=lambda x: x.output.task_status,
             estimated_duration=120 * int(duration / 5),
             poll_interval=6,
         )
-        return IO.NodeOutput(await download_url_to_video_output(response.output.video_url))
+        return IO.NodeOutput(
+            await download_url_to_video_output(response.output.video_url)
+        )
 
 
 class WanApiExtension(ComfyExtension):

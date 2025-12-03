@@ -93,16 +93,28 @@ class TripoTextToModelNode(IO.ComfyNode):
                 IO.String.Input("prompt", multiline=True),
                 IO.String.Input("negative_prompt", multiline=True, optional=True),
                 IO.Combo.Input(
-                    "model_version", options=TripoModelVersion, default=TripoModelVersion.v2_5_20250123, optional=True
+                    "model_version",
+                    options=TripoModelVersion,
+                    default=TripoModelVersion.v2_5_20250123,
+                    optional=True,
                 ),
-                IO.Combo.Input("style", options=TripoStyle, default="None", optional=True),
+                IO.Combo.Input(
+                    "style", options=TripoStyle, default="None", optional=True
+                ),
                 IO.Boolean.Input("texture", default=True, optional=True),
                 IO.Boolean.Input("pbr", default=True, optional=True),
                 IO.Int.Input("image_seed", default=42, optional=True),
                 IO.Int.Input("model_seed", default=42, optional=True),
                 IO.Int.Input("texture_seed", default=42, optional=True),
-                IO.Combo.Input("texture_quality", default="standard", options=["standard", "detailed"], optional=True),
-                IO.Int.Input("face_limit", default=-1, min=-1, max=500000, optional=True),
+                IO.Combo.Input(
+                    "texture_quality",
+                    default="standard",
+                    options=["standard", "detailed"],
+                    optional=True,
+                ),
+                IO.Int.Input(
+                    "face_limit", default=-1, min=-1, max=500000, optional=True
+                ),
                 IO.Boolean.Input("quad", default=False, optional=True),
             ],
             outputs=[
@@ -180,19 +192,34 @@ class TripoImageToModelNode(IO.ComfyNode):
                     tooltip="The model version to use for generation",
                     optional=True,
                 ),
-                IO.Combo.Input("style", options=TripoStyle, default="None", optional=True),
+                IO.Combo.Input(
+                    "style", options=TripoStyle, default="None", optional=True
+                ),
                 IO.Boolean.Input("texture", default=True, optional=True),
                 IO.Boolean.Input("pbr", default=True, optional=True),
                 IO.Int.Input("model_seed", default=42, optional=True),
                 IO.Combo.Input(
-                    "orientation", options=TripoOrientation, default=TripoOrientation.DEFAULT, optional=True
+                    "orientation",
+                    options=TripoOrientation,
+                    default=TripoOrientation.DEFAULT,
+                    optional=True,
                 ),
                 IO.Int.Input("texture_seed", default=42, optional=True),
-                IO.Combo.Input("texture_quality", default="standard", options=["standard", "detailed"], optional=True),
                 IO.Combo.Input(
-                    "texture_alignment", default="original_image", options=["original_image", "geometry"], optional=True
+                    "texture_quality",
+                    default="standard",
+                    options=["standard", "detailed"],
+                    optional=True,
                 ),
-                IO.Int.Input("face_limit", default=-1, min=-1, max=500000, optional=True),
+                IO.Combo.Input(
+                    "texture_alignment",
+                    default="original_image",
+                    options=["original_image", "geometry"],
+                    optional=True,
+                ),
+                IO.Int.Input(
+                    "face_limit", default=-1, min=-1, max=500000, optional=True
+                ),
                 IO.Boolean.Input("quad", default=False, optional=True),
             ],
             outputs=[
@@ -289,11 +316,21 @@ class TripoMultiviewToModelNode(IO.ComfyNode):
                 IO.Boolean.Input("pbr", default=True, optional=True),
                 IO.Int.Input("model_seed", default=42, optional=True),
                 IO.Int.Input("texture_seed", default=42, optional=True),
-                IO.Combo.Input("texture_quality", default="standard", options=["standard", "detailed"], optional=True),
                 IO.Combo.Input(
-                    "texture_alignment", default="original_image", options=["original_image", "geometry"], optional=True
+                    "texture_quality",
+                    default="standard",
+                    options=["standard", "detailed"],
+                    optional=True,
                 ),
-                IO.Int.Input("face_limit", default=-1, min=-1, max=500000, optional=True),
+                IO.Combo.Input(
+                    "texture_alignment",
+                    default="original_image",
+                    options=["original_image", "geometry"],
+                    optional=True,
+                ),
+                IO.Int.Input(
+                    "face_limit", default=-1, min=-1, max=500000, optional=True
+                ),
                 IO.Boolean.Input("quad", default=False, optional=True),
             ],
             outputs=[
@@ -330,16 +367,28 @@ class TripoMultiviewToModelNode(IO.ComfyNode):
         if image is None:
             raise RuntimeError("front image for multiview is required")
         images = []
-        image_dict = {"image": image, "image_left": image_left, "image_back": image_back, "image_right": image_right}
+        image_dict = {
+            "image": image,
+            "image_left": image_left,
+            "image_back": image_back,
+            "image_right": image_right,
+        }
         if image_left is None and image_back is None and image_right is None:
-            raise RuntimeError("At least one of left, back, or right image must be provided for multiview")
+            raise RuntimeError(
+                "At least one of left, back, or right image must be provided for multiview"
+            )
         for image_name in ["image", "image_left", "image_back", "image_right"]:
             image_ = image_dict[image_name]
             if image_ is not None:
                 images.append(
                     TripoFileReference(
                         root=TripoUrlReference(
-                            url=(await upload_images_to_comfyapi(cls, image_, max_images=1))[0], type="jpeg"
+                            url=(
+                                await upload_images_to_comfyapi(
+                                    cls, image_, max_images=1
+                                )
+                            )[0],
+                            type="jpeg",
                         )
                     )
                 )
@@ -368,7 +417,6 @@ class TripoMultiviewToModelNode(IO.ComfyNode):
 
 
 class TripoTextureNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -380,9 +428,17 @@ class TripoTextureNode(IO.ComfyNode):
                 IO.Boolean.Input("texture", default=True, optional=True),
                 IO.Boolean.Input("pbr", default=True, optional=True),
                 IO.Int.Input("texture_seed", default=42, optional=True),
-                IO.Combo.Input("texture_quality", default="standard", options=["standard", "detailed"], optional=True),
                 IO.Combo.Input(
-                    "texture_alignment", default="original_image", options=["original_image", "geometry"], optional=True
+                    "texture_quality",
+                    default="standard",
+                    options=["standard", "detailed"],
+                    optional=True,
+                ),
+                IO.Combo.Input(
+                    "texture_alignment",
+                    default="original_image",
+                    options=["original_image", "geometry"],
+                    optional=True,
                 ),
             ],
             outputs=[
@@ -425,7 +481,6 @@ class TripoTextureNode(IO.ComfyNode):
 
 
 class TripoRefineNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -434,7 +489,9 @@ class TripoRefineNode(IO.ComfyNode):
             category="api node/3d/Tripo",
             description="Refine a draft model created by v1.4 Tripo models only.",
             inputs=[
-                IO.Custom("MODEL_TASK_ID").Input("model_task_id", tooltip="Must be a v1.4 Tripo model"),
+                IO.Custom("MODEL_TASK_ID").Input(
+                    "model_task_id", tooltip="Must be a v1.4 Tripo model"
+                ),
             ],
             outputs=[
                 IO.String.Output(display_name="model_file"),
@@ -461,7 +518,6 @@ class TripoRefineNode(IO.ComfyNode):
 
 
 class TripoRigNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -488,13 +544,16 @@ class TripoRigNode(IO.ComfyNode):
             cls,
             endpoint=ApiEndpoint(path="/proxy/tripo/v2/openapi/task", method="POST"),
             response_model=TripoTaskResponse,
-            data=TripoAnimateRigRequest(original_model_task_id=original_model_task_id, out_format="glb", spec="tripo"),
+            data=TripoAnimateRigRequest(
+                original_model_task_id=original_model_task_id,
+                out_format="glb",
+                spec="tripo",
+            ),
         )
         return await poll_until_finished(cls, response, average_duration=180)
 
 
 class TripoRetargetNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -548,7 +607,6 @@ class TripoRetargetNode(IO.ComfyNode):
 
 
 class TripoConversionNode(IO.ComfyNode):
-
     @classmethod
     def define_schema(cls):
         return IO.Schema(
@@ -556,8 +614,12 @@ class TripoConversionNode(IO.ComfyNode):
             display_name="Tripo: Convert model",
             category="api node/3d/Tripo",
             inputs=[
-                IO.Custom("MODEL_TASK_ID,RIG_TASK_ID,RETARGET_TASK_ID").Input("original_model_task_id"),
-                IO.Combo.Input("format", options=["GLTF", "USDZ", "FBX", "OBJ", "STL", "3MF"]),
+                IO.Custom("MODEL_TASK_ID,RIG_TASK_ID,RETARGET_TASK_ID").Input(
+                    "original_model_task_id"
+                ),
+                IO.Combo.Input(
+                    "format", options=["GLTF", "USDZ", "FBX", "OBJ", "STL", "3MF"]
+                ),
                 IO.Boolean.Input("quad", default=False, optional=True),
                 IO.Int.Input(
                     "face_limit",
@@ -575,7 +637,17 @@ class TripoConversionNode(IO.ComfyNode):
                 ),
                 IO.Combo.Input(
                     "texture_format",
-                    options=["BMP", "DPX", "HDR", "JPEG", "OPEN_EXR", "PNG", "TARGA", "TIFF", "WEBP"],
+                    options=[
+                        "BMP",
+                        "DPX",
+                        "HDR",
+                        "JPEG",
+                        "OPEN_EXR",
+                        "PNG",
+                        "TARGA",
+                        "TIFF",
+                        "WEBP",
+                    ],
                     default="JPEG",
                     optional=True,
                 ),
@@ -594,7 +666,11 @@ class TripoConversionNode(IO.ComfyNode):
     def validate_inputs(cls, input_types):
         # The min and max of input1 and input2 are still validated because
         # we didn't take `input1` or `input2` as arguments
-        if input_types["original_model_task_id"] not in ("MODEL_TASK_ID", "RIG_TASK_ID", "RETARGET_TASK_ID"):
+        if input_types["original_model_task_id"] not in (
+            "MODEL_TASK_ID",
+            "RIG_TASK_ID",
+            "RETARGET_TASK_ID",
+        ):
             return "original_model_task_id must be MODEL_TASK_ID, RIG_TASK_ID or RETARGET_TASK_ID type"
         return True
 

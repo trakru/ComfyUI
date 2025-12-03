@@ -93,7 +93,9 @@ async def validate_and_cast_response(response, timeout: int = None) -> torch.Ten
             img_io = BytesIO()
             await download_url_to_bytesio(img_data.url, img_io, timeout=timeout)
         else:
-            raise ValueError("Invalid image payload – neither URL nor base64 data present.")
+            raise ValueError(
+                "Invalid image payload – neither URL nor base64 data present."
+            )
 
         pil_img = Image.open(img_io).convert("RGBA")
         arr = np.asarray(pil_img).astype(np.float32) / 255.0
@@ -261,7 +263,7 @@ class OpenAIDalle3(IO.ComfyNode):
                     "seed",
                     default=0,
                     min=0,
-                    max=2 ** 31 - 1,
+                    max=2**31 - 1,
                     step=1,
                     display_mode=IO.NumberDisplay.number,
                     control_after_generate=True,
@@ -354,7 +356,7 @@ class OpenAIGPTImage1(IO.ComfyNode):
                     "seed",
                     default=0,
                     min=0,
-                    max=2 ** 31 - 1,
+                    max=2**31 - 1,
                     step=1,
                     display_mode=IO.NumberDisplay.number,
                     control_after_generate=True,
@@ -451,9 +453,13 @@ class OpenAIGPTImage1(IO.ComfyNode):
                 img_byte_arr.seek(0)
 
                 if batch_size == 1:
-                    files.append(("image", (f"image_{i}.png", img_byte_arr, "image/png")))
+                    files.append(
+                        ("image", (f"image_{i}.png", img_byte_arr, "image/png"))
+                    )
                 else:
-                    files.append(("image[]", (f"image_{i}.png", img_byte_arr, "image/png")))
+                    files.append(
+                        ("image[]", (f"image_{i}.png", img_byte_arr, "image/png"))
+                    )
 
         if mask is not None:
             if image is None:
@@ -563,9 +569,7 @@ class OpenAIChatNode(IO.ComfyNode):
         raise TypeError("No output message found in response")
 
     @classmethod
-    def get_text_from_message_content(
-        cls, message_content: list[OutputContent]
-    ) -> str:
+    def get_text_from_message_content(cls, message_content: list[OutputContent]) -> str:
         """Extract text content from message content."""
         for content_item in message_content:
             if content_item.root.type == "output_text":
@@ -591,7 +595,9 @@ class OpenAIChatNode(IO.ComfyNode):
         files: Optional[list[InputFileContent]] = None,
     ) -> InputMessageContentList:
         """Create a list of input message contents from prompt and optional image."""
-        content_list: list[Union[InputContent, InputTextContent, InputImageContent, InputFileContent]] = [
+        content_list: list[
+            Union[InputContent, InputTextContent, InputImageContent, InputFileContent]
+        ] = [
             InputTextContent(text=prompt, type="input_text"),
         ]
         if image is not None:
@@ -654,13 +660,15 @@ class OpenAIChatNode(IO.ComfyNode):
 
         # Get result output
         result_response = await poll_op(
-                cls,
-                ApiEndpoint(path=f"{RESPONSES_ENDPOINT}/{response_id}"),
-                response_model=OpenAIResponse,
-                status_extractor=lambda response: response.status,
-                completed_statuses=["incomplete", "completed"]
-            )
-        output_text = cls.get_text_from_message_content(cls.get_message_content_from_response(result_response))
+            cls,
+            ApiEndpoint(path=f"{RESPONSES_ENDPOINT}/{response_id}"),
+            response_model=OpenAIResponse,
+            status_extractor=lambda response: response.status,
+            completed_statuses=["incomplete", "completed"],
+        )
+        output_text = cls.get_text_from_message_content(
+            cls.get_message_content_from_response(result_response)
+        )
 
         # Update history
         render_spec = {
@@ -739,7 +747,9 @@ class OpenAIInputFiles(IO.ComfyNode):
         )
 
     @classmethod
-    def execute(cls, file: str, OPENAI_INPUT_FILES: list[InputFileContent] = []) -> IO.NodeOutput:
+    def execute(
+        cls, file: str, OPENAI_INPUT_FILES: list[InputFileContent] = []
+    ) -> IO.NodeOutput:
         """
         Loads and formats input files for OpenAI API.
         """

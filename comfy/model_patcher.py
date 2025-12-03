@@ -1,19 +1,19 @@
 """
-    This file is part of ComfyUI.
-    Copyright (C) 2024 Comfy
+This file is part of ComfyUI.
+Copyright (C) 2024 Comfy
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from __future__ import annotations
@@ -51,7 +51,10 @@ def string_to_seed(data):
                 crc >>= 1
     return crc ^ 0xFFFFFFFF
 
-def set_model_options_patch_replace(model_options, patch, name, block_name, number, transformer_index=None):
+
+def set_model_options_patch_replace(
+    model_options, patch, name, block_name, number, transformer_index=None
+):
     to = model_options["transformer_options"].copy()
 
     if "patches_replace" not in to:
@@ -72,20 +75,32 @@ def set_model_options_patch_replace(model_options, patch, name, block_name, numb
     model_options["transformer_options"] = to
     return model_options
 
-def set_model_options_post_cfg_function(model_options, post_cfg_function, disable_cfg1_optimization=False):
-    model_options["sampler_post_cfg_function"] = model_options.get("sampler_post_cfg_function", []) + [post_cfg_function]
+
+def set_model_options_post_cfg_function(
+    model_options, post_cfg_function, disable_cfg1_optimization=False
+):
+    model_options["sampler_post_cfg_function"] = model_options.get(
+        "sampler_post_cfg_function", []
+    ) + [post_cfg_function]
     if disable_cfg1_optimization:
         model_options["disable_cfg1_optimization"] = True
     return model_options
 
-def set_model_options_pre_cfg_function(model_options, pre_cfg_function, disable_cfg1_optimization=False):
-    model_options["sampler_pre_cfg_function"] = model_options.get("sampler_pre_cfg_function", []) + [pre_cfg_function]
+
+def set_model_options_pre_cfg_function(
+    model_options, pre_cfg_function, disable_cfg1_optimization=False
+):
+    model_options["sampler_pre_cfg_function"] = model_options.get(
+        "sampler_pre_cfg_function", []
+    ) + [pre_cfg_function]
     if disable_cfg1_optimization:
         model_options["disable_cfg1_optimization"] = True
     return model_options
+
 
 def create_model_options_clone(orig_model_options: dict):
     return comfy.patcher_extension.copy_nested_dicts(orig_model_options)
+
 
 def create_hook_patches_clone(orig_hook_patches):
     new_hook_patches = {}
@@ -94,6 +109,7 @@ def create_hook_patches_clone(orig_hook_patches):
         for k in orig_hook_patches[hook_ref]:
             new_hook_patches[hook_ref][k] = orig_hook_patches[hook_ref][k][:]
     return new_hook_patches
+
 
 def wipe_lowvram_weight(m):
     if hasattr(m, "prev_comfy_cast_weights"):
@@ -105,6 +121,7 @@ def wipe_lowvram_weight(m):
 
     if hasattr(m, "bias_function"):
         m.bias_function = []
+
 
 def move_weight_functions(m, device):
     if device is None:
@@ -122,6 +139,7 @@ def move_weight_functions(m, device):
                 memory += f.move_to(device=device)
     return memory
 
+
 class LowVramPatch:
     def __init__(self, key, patches, convert_func=None, set_func=None):
         self.key = key
@@ -132,26 +150,49 @@ class LowVramPatch:
     def __call__(self, weight):
         intermediate_dtype = weight.dtype
         if self.convert_func is not None:
-            weight = self.convert_func(weight.to(dtype=torch.float32, copy=True), inplace=True)
+            weight = self.convert_func(
+                weight.to(dtype=torch.float32, copy=True), inplace=True
+            )
 
-        if intermediate_dtype not in [torch.float32, torch.float16, torch.bfloat16]: #intermediate_dtype has to be one that is supported in math ops
+        if intermediate_dtype not in [
+            torch.float32,
+            torch.float16,
+            torch.bfloat16,
+        ]:  # intermediate_dtype has to be one that is supported in math ops
             intermediate_dtype = torch.float32
-            out = comfy.lora.calculate_weight(self.patches[self.key], weight.to(intermediate_dtype), self.key, intermediate_dtype=intermediate_dtype)
+            out = comfy.lora.calculate_weight(
+                self.patches[self.key],
+                weight.to(intermediate_dtype),
+                self.key,
+                intermediate_dtype=intermediate_dtype,
+            )
             if self.set_func is None:
-                return comfy.float.stochastic_rounding(out, weight.dtype, seed=string_to_seed(self.key))
+                return comfy.float.stochastic_rounding(
+                    out, weight.dtype, seed=string_to_seed(self.key)
+                )
             else:
-                return self.set_func(out, seed=string_to_seed(self.key), return_weight=True)
+                return self.set_func(
+                    out, seed=string_to_seed(self.key), return_weight=True
+                )
 
-        out = comfy.lora.calculate_weight(self.patches[self.key], weight, self.key, intermediate_dtype=intermediate_dtype)
+        out = comfy.lora.calculate_weight(
+            self.patches[self.key],
+            weight,
+            self.key,
+            intermediate_dtype=intermediate_dtype,
+        )
         if self.set_func is not None:
-            return self.set_func(out, seed=string_to_seed(self.key), return_weight=True).to(dtype=intermediate_dtype)
+            return self.set_func(
+                out, seed=string_to_seed(self.key), return_weight=True
+            ).to(dtype=intermediate_dtype)
         else:
             return out
+
 
 def get_key_weight(model, key):
     set_func = None
     convert_func = None
-    op_keys = key.rsplit('.', 1)
+    op_keys = key.rsplit(".", 1)
     if len(op_keys) < 2:
         weight = comfy.utils.get_attr(model, key)
     else:
@@ -172,8 +213,9 @@ def get_key_weight(model, key):
 
     return weight, set_func, convert_func
 
+
 class AutoPatcherEjector:
-    def __init__(self, model: 'ModelPatcher', skip_and_inject_on_exit_only=False):
+    def __init__(self, model: "ModelPatcher", skip_and_inject_on_exit_only=False):
         self.model = model
         self.was_injected = False
         self.prev_skip_injection = False
@@ -196,6 +238,7 @@ class AutoPatcherEjector:
             self.model.inject_model()
         self.model.skip_injection = self.prev_skip_injection
 
+
 class MemoryCounter:
     def __init__(self, initial: int, minimum=0):
         self.value = initial
@@ -215,11 +258,14 @@ class MemoryCounter:
     def decrement(self, used: int):
         self.value -= used
 
+
 class ModelPatcher:
-    def __init__(self, model, load_device, offload_device, size=0, weight_inplace_update=False):
+    def __init__(
+        self, model, load_device, offload_device, size=0, weight_inplace_update=False
+    ):
         self.size = size
         self.model = model
-        if not hasattr(self.model, 'device'):
+        if not hasattr(self.model, "device"):
             logging.debug("Model doesn't have a device attribute.")
             self.model.device = offload_device
         elif self.model.device is None:
@@ -230,7 +276,7 @@ class ModelPatcher:
         self.object_patches = {}
         self.object_patches_backup = {}
         self.weight_wrapper_patches = {}
-        self.model_options = {"transformer_options":{}}
+        self.model_options = {"transformer_options": {}}
         self.model_size()
         self.load_device = load_device
         self.offload_device = offload_device
@@ -242,7 +288,9 @@ class ModelPatcher:
 
         self.attachments: dict[str] = {}
         self.additional_models: dict[str, list[ModelPatcher]] = {}
-        self.callbacks: dict[str, dict[str, list[Callable]]] = CallbacksMP.init_callbacks()
+        self.callbacks: dict[str, dict[str, list[Callable]]] = (
+            CallbacksMP.init_callbacks()
+        )
         self.wrappers: dict[str, dict[str, list[Callable]]] = WrappersMP.init_wrappers()
 
         self.is_injected = False
@@ -252,22 +300,26 @@ class ModelPatcher:
         self.hook_patches: dict[comfy.hooks._HookRef] = {}
         self.hook_patches_backup: dict[comfy.hooks._HookRef] = None
         self.hook_backup: dict[str, tuple[torch.Tensor, torch.device]] = {}
-        self.cached_hook_patches: dict[comfy.hooks.HookGroup, dict[str, torch.Tensor]] = {}
+        self.cached_hook_patches: dict[
+            comfy.hooks.HookGroup, dict[str, torch.Tensor]
+        ] = {}
         self.current_hooks: Optional[comfy.hooks.HookGroup] = None
-        self.forced_hooks: Optional[comfy.hooks.HookGroup] = None  # NOTE: only used for CLIP at this time
+        self.forced_hooks: Optional[comfy.hooks.HookGroup] = (
+            None  # NOTE: only used for CLIP at this time
+        )
         self.is_clip = False
         self.hook_mode = comfy.hooks.EnumHookMode.MaxSpeed
 
-        if not hasattr(self.model, 'model_loaded_weight_memory'):
+        if not hasattr(self.model, "model_loaded_weight_memory"):
             self.model.model_loaded_weight_memory = 0
 
-        if not hasattr(self.model, 'lowvram_patch_counter'):
+        if not hasattr(self.model, "lowvram_patch_counter"):
             self.model.lowvram_patch_counter = 0
 
-        if not hasattr(self.model, 'model_lowvram'):
+        if not hasattr(self.model, "model_lowvram"):
             self.model.model_lowvram = False
 
-        if not hasattr(self.model, 'current_weight_patches_uuid'):
+        if not hasattr(self.model, "current_weight_patches_uuid"):
             self.model.current_weight_patches_uuid = None
 
     def model_size(self):
@@ -286,7 +338,13 @@ class ModelPatcher:
         return self.model.lowvram_patch_counter
 
     def clone(self):
-        n = self.__class__(self.model, self.load_device, self.offload_device, self.size, weight_inplace_update=self.weight_inplace_update)
+        n = self.__class__(
+            self.model,
+            self.load_device,
+            self.offload_device,
+            self.size,
+            weight_inplace_update=self.weight_inplace_update,
+        )
         n.patches = {}
         for k in self.patches:
             n.patches[k] = self.patches[k][:]
@@ -329,14 +387,22 @@ class ModelPatcher:
             n.injections[k] = i.copy()
         # hooks
         n.hook_patches = create_hook_patches_clone(self.hook_patches)
-        n.hook_patches_backup = create_hook_patches_clone(self.hook_patches_backup) if self.hook_patches_backup else self.hook_patches_backup
+        n.hook_patches_backup = (
+            create_hook_patches_clone(self.hook_patches_backup)
+            if self.hook_patches_backup
+            else self.hook_patches_backup
+        )
         for group in self.cached_hook_patches:
             n.cached_hook_patches[group] = {}
             for k in self.cached_hook_patches[group]:
                 n.cached_hook_patches[group][k] = self.cached_hook_patches[group][k]
         n.hook_backup = self.hook_backup
-        n.current_hooks = self.current_hooks.clone() if self.current_hooks else self.current_hooks
-        n.forced_hooks = self.forced_hooks.clone() if self.forced_hooks else self.forced_hooks
+        n.current_hooks = (
+            self.current_hooks.clone() if self.current_hooks else self.current_hooks
+        )
+        n.forced_hooks = (
+            self.forced_hooks.clone() if self.forced_hooks else self.forced_hooks
+        )
         n.is_clip = self.is_clip
         n.hook_mode = self.hook_mode
 
@@ -345,11 +411,11 @@ class ModelPatcher:
         return n
 
     def is_clone(self, other):
-        if hasattr(other, 'model') and self.model is other.model:
+        if hasattr(other, "model") and self.model is other.model:
             return True
         return False
 
-    def clone_has_same_weights(self, clone: 'ModelPatcher'):
+    def clone_has_same_weights(self, clone: "ModelPatcher"):
         if not self.is_clone(clone):
             return False
 
@@ -377,31 +443,53 @@ class ModelPatcher:
 
         if self.patches_uuid == clone.patches_uuid:
             if len(self.patches) != len(clone.patches):
-                logging.warning("WARNING: something went wrong, same patch uuid but different length of patches.")
+                logging.warning(
+                    "WARNING: something went wrong, same patch uuid but different length of patches."
+                )
             else:
                 return True
 
     def memory_required(self, input_shape):
         return self.model.memory_required(input_shape=input_shape)
 
-    def set_model_sampler_cfg_function(self, sampler_cfg_function, disable_cfg1_optimization=False):
+    def set_model_sampler_cfg_function(
+        self, sampler_cfg_function, disable_cfg1_optimization=False
+    ):
         if len(inspect.signature(sampler_cfg_function).parameters) == 3:
-            self.model_options["sampler_cfg_function"] = lambda args: sampler_cfg_function(args["cond"], args["uncond"], args["cond_scale"]) #Old way
+            self.model_options["sampler_cfg_function"] = (
+                lambda args: sampler_cfg_function(
+                    args["cond"], args["uncond"], args["cond_scale"]
+                )
+            )  # Old way
         else:
             self.model_options["sampler_cfg_function"] = sampler_cfg_function
         if disable_cfg1_optimization:
             self.model_options["disable_cfg1_optimization"] = True
 
-    def set_model_sampler_post_cfg_function(self, post_cfg_function, disable_cfg1_optimization=False):
-        self.model_options = set_model_options_post_cfg_function(self.model_options, post_cfg_function, disable_cfg1_optimization)
+    def set_model_sampler_post_cfg_function(
+        self, post_cfg_function, disable_cfg1_optimization=False
+    ):
+        self.model_options = set_model_options_post_cfg_function(
+            self.model_options, post_cfg_function, disable_cfg1_optimization
+        )
 
-    def set_model_sampler_pre_cfg_function(self, pre_cfg_function, disable_cfg1_optimization=False):
-        self.model_options = set_model_options_pre_cfg_function(self.model_options, pre_cfg_function, disable_cfg1_optimization)
+    def set_model_sampler_pre_cfg_function(
+        self, pre_cfg_function, disable_cfg1_optimization=False
+    ):
+        self.model_options = set_model_options_pre_cfg_function(
+            self.model_options, pre_cfg_function, disable_cfg1_optimization
+        )
 
-    def set_model_sampler_calc_cond_batch_function(self, sampler_calc_cond_batch_function):
-        self.model_options["sampler_calc_cond_batch_function"] = sampler_calc_cond_batch_function
+    def set_model_sampler_calc_cond_batch_function(
+        self, sampler_calc_cond_batch_function
+    ):
+        self.model_options["sampler_calc_cond_batch_function"] = (
+            sampler_calc_cond_batch_function
+        )
 
-    def set_model_unet_function_wrapper(self, unet_wrapper_function: UnetWrapperFunction):
+    def set_model_unet_function_wrapper(
+        self, unet_wrapper_function: UnetWrapperFunction
+    ):
         self.model_options["model_function_wrapper"] = unet_wrapper_function
 
     def set_model_denoise_mask_function(self, denoise_mask_function):
@@ -413,8 +501,17 @@ class ModelPatcher:
             to["patches"] = {}
         to["patches"][name] = to["patches"].get(name, []) + [patch]
 
-    def set_model_patch_replace(self, patch, name, block_name, number, transformer_index=None):
-        self.model_options = set_model_options_patch_replace(self.model_options, patch, name, block_name, number, transformer_index=transformer_index)
+    def set_model_patch_replace(
+        self, patch, name, block_name, number, transformer_index=None
+    ):
+        self.model_options = set_model_options_patch_replace(
+            self.model_options,
+            patch,
+            name,
+            block_name,
+            number,
+            transformer_index=transformer_index,
+        )
 
     def set_model_attn1_patch(self, patch):
         self.set_model_patch(patch, "attn1_patch")
@@ -422,11 +519,19 @@ class ModelPatcher:
     def set_model_attn2_patch(self, patch):
         self.set_model_patch(patch, "attn2_patch")
 
-    def set_model_attn1_replace(self, patch, block_name, number, transformer_index=None):
-        self.set_model_patch_replace(patch, "attn1", block_name, number, transformer_index)
+    def set_model_attn1_replace(
+        self, patch, block_name, number, transformer_index=None
+    ):
+        self.set_model_patch_replace(
+            patch, "attn1", block_name, number, transformer_index
+        )
 
-    def set_model_attn2_replace(self, patch, block_name, number, transformer_index=None):
-        self.set_model_patch_replace(patch, "attn2", block_name, number, transformer_index)
+    def set_model_attn2_replace(
+        self, patch, block_name, number, transformer_index=None
+    ):
+        self.set_model_patch_replace(
+            patch, "attn2", block_name, number, transformer_index
+        )
 
     def set_model_attn1_output_patch(self, patch):
         self.set_model_patch(patch, "attn1_output_patch")
@@ -455,7 +560,9 @@ class ModelPatcher:
     def set_model_post_input_patch(self, patch):
         self.set_model_patch(patch, "post_input")
 
-    def set_model_rope_options(self, scale_x, shift_x, scale_y, shift_y, scale_t, shift_t, **kwargs):
+    def set_model_rope_options(
+        self, scale_x, shift_x, scale_y, shift_y, scale_t, shift_t, **kwargs
+    ):
         rope_options = self.model_options["transformer_options"].get("rope_options", {})
         rope_options["scale_x"] = scale_x
         rope_options["scale_y"] = scale_y
@@ -467,7 +574,6 @@ class ModelPatcher:
 
         self.model_options["transformer_options"]["rope_options"] = rope_options
 
-
     def add_object_patch(self, name, obj):
         self.object_patches[name] = obj
 
@@ -475,10 +581,14 @@ class ModelPatcher:
         self.add_object_patch("manual_cast_dtype", dtype)
         if dtype is not None:
             self.force_cast_weights = True
-        self.patches_uuid = uuid.uuid4() #TODO: optimize by preventing a full model reload for this
+        self.patches_uuid = (
+            uuid.uuid4()
+        )  # TODO: optimize by preventing a full model reload for this
 
     def add_weight_wrapper(self, name, function):
-        self.weight_wrapper_patches[name] = self.weight_wrapper_patches.get(name, []) + [function]
+        self.weight_wrapper_patches[name] = self.weight_wrapper_patches.get(
+            name, []
+        ) + [function]
         self.patches_uuid = uuid.uuid4()
 
     def get_model_object(self, name: str) -> torch.nn.Module:
@@ -570,7 +680,9 @@ class ModelPatcher:
                 if key in model_sd:
                     p.add(k)
                     current_patches = self.patches.get(key, [])
-                    current_patches.append((strength_patch, patches[k], strength_model, offset, function))
+                    current_patches.append(
+                        (strength_patch, patches[k], strength_model, offset, function)
+                    )
                     self.patches[key] = current_patches
 
             self.patches_uuid = uuid.uuid4()
@@ -617,10 +729,17 @@ class ModelPatcher:
         inplace_update = self.weight_inplace_update or inplace_update
 
         if key not in self.backup:
-            self.backup[key] = collections.namedtuple('Dimension', ['weight', 'inplace_update'])(weight.to(device=self.offload_device, copy=inplace_update), inplace_update)
+            self.backup[key] = collections.namedtuple(
+                "Dimension", ["weight", "inplace_update"]
+            )(
+                weight.to(device=self.offload_device, copy=inplace_update),
+                inplace_update,
+            )
 
         if device_to is not None:
-            temp_weight = comfy.model_management.cast_to_device(weight, device_to, torch.float32, copy=True)
+            temp_weight = comfy.model_management.cast_to_device(
+                weight, device_to, torch.float32, copy=True
+            )
         else:
             temp_weight = weight.to(torch.float32, copy=True)
         if convert_func is not None:
@@ -628,13 +747,17 @@ class ModelPatcher:
 
         out_weight = comfy.lora.calculate_weight(self.patches[key], temp_weight, key)
         if set_func is None:
-            out_weight = comfy.float.stochastic_rounding(out_weight, weight.dtype, seed=string_to_seed(key))
+            out_weight = comfy.float.stochastic_rounding(
+                out_weight, weight.dtype, seed=string_to_seed(key)
+            )
             if inplace_update:
                 comfy.utils.copy_to_param(self.model, key, out_weight)
             else:
                 comfy.utils.set_attr_param(self.model, key, out_weight)
         else:
-            set_func(out_weight, inplace_update=inplace_update, seed=string_to_seed(key))
+            set_func(
+                out_weight, inplace_update=inplace_update, seed=string_to_seed(key)
+            )
 
     def pin_weight_to_device(self, key):
         weight, set_func, convert_func = get_key_weight(self.model, key)
@@ -660,13 +783,19 @@ class ModelPatcher:
                 params.append(name)
             for name, param in m.named_parameters(recurse=True):
                 if name not in params:
-                    skip = True # skip random weights in non leaf modules
+                    skip = True  # skip random weights in non leaf modules
                     break
             if not skip and (hasattr(m, "comfy_cast_weights") or len(params) > 0):
                 loading.append((comfy.model_management.module_size(m), n, m, params))
         return loading
 
-    def load(self, device_to=None, lowvram_model_memory=0, force_patch_weights=False, full_load=False):
+    def load(
+        self,
+        device_to=None,
+        lowvram_model_memory=0,
+        force_patch_weights=False,
+        full_load=False,
+    ):
         with self.use_ejected():
             self.unpatch_hooks()
             mem_counter = 0
@@ -694,7 +823,7 @@ class ModelPatcher:
                         lowvram_weight = True
                         lowvram_counter += 1
                         lowvram_mem_counter += module_mem
-                        if hasattr(m, "prev_comfy_cast_weights"): #Already lowvramed
+                        if hasattr(m, "prev_comfy_cast_weights"):  # Already lowvramed
                             continue
 
                 cast_weight = self.force_cast_weights
@@ -707,15 +836,27 @@ class ModelPatcher:
                         if force_patch_weights:
                             self.patch_weight_to_device(weight_key)
                         else:
-                            _, set_func, convert_func = get_key_weight(self.model, weight_key)
-                            m.weight_function = [LowVramPatch(weight_key, self.patches, convert_func, set_func)]
+                            _, set_func, convert_func = get_key_weight(
+                                self.model, weight_key
+                            )
+                            m.weight_function = [
+                                LowVramPatch(
+                                    weight_key, self.patches, convert_func, set_func
+                                )
+                            ]
                             patch_counter += 1
                     if bias_key in self.patches:
                         if force_patch_weights:
                             self.patch_weight_to_device(bias_key)
                         else:
-                            _, set_func, convert_func = get_key_weight(self.model, bias_key)
-                            m.bias_function = [LowVramPatch(bias_key, self.patches, convert_func, set_func)]
+                            _, set_func, convert_func = get_key_weight(
+                                self.model, bias_key
+                            )
+                            m.bias_function = [
+                                LowVramPatch(
+                                    bias_key, self.patches, convert_func, set_func
+                                )
+                            ]
                             patch_counter += 1
 
                     cast_weight = True
@@ -767,10 +908,23 @@ class ModelPatcher:
                     self.pin_weight_to_device("{}.{}".format(n, param))
 
             if lowvram_counter > 0:
-                logging.info("loaded partially; {:.2f} MB usable, {:.2f} MB loaded, {:.2f} MB offloaded, lowvram patches: {}".format(lowvram_model_memory / (1024 * 1024), mem_counter / (1024 * 1024), lowvram_mem_counter / (1024 * 1024), patch_counter))
+                logging.info(
+                    "loaded partially; {:.2f} MB usable, {:.2f} MB loaded, {:.2f} MB offloaded, lowvram patches: {}".format(
+                        lowvram_model_memory / (1024 * 1024),
+                        mem_counter / (1024 * 1024),
+                        lowvram_mem_counter / (1024 * 1024),
+                        patch_counter,
+                    )
+                )
                 self.model.model_lowvram = True
             else:
-                logging.info("loaded completely; {:.2f} MB usable, {:.2f} MB loaded, full load: {}".format(lowvram_model_memory / (1024 * 1024), mem_counter / (1024 * 1024), full_load))
+                logging.info(
+                    "loaded completely; {:.2f} MB usable, {:.2f} MB loaded, full load: {}".format(
+                        lowvram_model_memory / (1024 * 1024),
+                        mem_counter / (1024 * 1024),
+                        full_load,
+                    )
+                )
                 self.model.model_lowvram = False
                 if full_load:
                     self.model.to(device_to)
@@ -782,11 +936,23 @@ class ModelPatcher:
             self.model.current_weight_patches_uuid = self.patches_uuid
 
             for callback in self.get_all_callbacks(CallbacksMP.ON_LOAD):
-                callback(self, device_to, lowvram_model_memory, force_patch_weights, full_load)
+                callback(
+                    self,
+                    device_to,
+                    lowvram_model_memory,
+                    force_patch_weights,
+                    full_load,
+                )
 
             self.apply_hooks(self.forced_hooks, force_apply=True)
 
-    def patch_model(self, device_to=None, lowvram_model_memory=0, load_weights=True, force_patch_weights=False):
+    def patch_model(
+        self,
+        device_to=None,
+        lowvram_model_memory=0,
+        load_weights=True,
+        force_patch_weights=False,
+    ):
         with self.use_ejected():
             for k in self.object_patches:
                 old = comfy.utils.set_attr(self.model, k, self.object_patches[k])
@@ -799,7 +965,12 @@ class ModelPatcher:
                 full_load = False
 
             if load_weights:
-                self.load(device_to, lowvram_model_memory=lowvram_model_memory, force_patch_weights=force_patch_weights, full_load=full_load)
+                self.load(
+                    device_to,
+                    lowvram_model_memory=lowvram_model_memory,
+                    force_patch_weights=force_patch_weights,
+                    full_load=full_load,
+                )
         self.inject_model()
         return self.model
 
@@ -859,7 +1030,10 @@ class ModelPatcher:
                 params = unload[3]
 
                 lowvram_possible = hasattr(m, "comfy_cast_weights")
-                if hasattr(m, "comfy_patched_weights") and m.comfy_patched_weights == True:
+                if (
+                    hasattr(m, "comfy_patched_weights")
+                    and m.comfy_patched_weights == True
+                ):
                     move_weight = True
                     for param in params:
                         key = "{}.{}".format(n, param)
@@ -890,15 +1064,33 @@ class ModelPatcher:
                                 if force_patch_weights:
                                     self.patch_weight_to_device(weight_key)
                                 else:
-                                    _, set_func, convert_func = get_key_weight(self.model, weight_key)
-                                    m.weight_function.append(LowVramPatch(weight_key, self.patches, convert_func, set_func))
+                                    _, set_func, convert_func = get_key_weight(
+                                        self.model, weight_key
+                                    )
+                                    m.weight_function.append(
+                                        LowVramPatch(
+                                            weight_key,
+                                            self.patches,
+                                            convert_func,
+                                            set_func,
+                                        )
+                                    )
                                     patch_counter += 1
                             if bias_key in self.patches:
                                 if force_patch_weights:
                                     self.patch_weight_to_device(bias_key)
                                 else:
-                                    _, set_func, convert_func = get_key_weight(self.model, bias_key)
-                                    m.bias_function.append(LowVramPatch(bias_key, self.patches, convert_func, set_func))
+                                    _, set_func, convert_func = get_key_weight(
+                                        self.model, bias_key
+                                    )
+                                    m.bias_function.append(
+                                        LowVramPatch(
+                                            bias_key,
+                                            self.patches,
+                                            convert_func,
+                                            set_func,
+                                        )
+                                    )
                                     patch_counter += 1
                             cast_weight = True
 
@@ -915,31 +1107,51 @@ class ModelPatcher:
             self.model.model_lowvram = True
             self.model.lowvram_patch_counter += patch_counter
             self.model.model_loaded_weight_memory -= memory_freed
-            logging.info("loaded partially: {:.2f} MB loaded, lowvram patches: {}".format(self.model.model_loaded_weight_memory / (1024 * 1024), self.model.lowvram_patch_counter))
+            logging.info(
+                "loaded partially: {:.2f} MB loaded, lowvram patches: {}".format(
+                    self.model.model_loaded_weight_memory / (1024 * 1024),
+                    self.model.lowvram_patch_counter,
+                )
+            )
             return memory_freed
 
     def partially_load(self, device_to, extra_memory=0, force_patch_weights=False):
         with self.use_ejected(skip_and_inject_on_exit_only=True):
-            unpatch_weights = self.model.current_weight_patches_uuid is not None and (self.model.current_weight_patches_uuid != self.patches_uuid or force_patch_weights)
+            unpatch_weights = self.model.current_weight_patches_uuid is not None and (
+                self.model.current_weight_patches_uuid != self.patches_uuid
+                or force_patch_weights
+            )
             # TODO: force_patch_weights should not unload + reload full model
             used = self.model.model_loaded_weight_memory
             self.unpatch_model(self.offload_device, unpatch_weights=unpatch_weights)
             if unpatch_weights:
-                extra_memory += (used - self.model.model_loaded_weight_memory)
+                extra_memory += used - self.model.model_loaded_weight_memory
 
             self.patch_model(load_weights=False)
             if extra_memory < 0 and not unpatch_weights:
-                self.partially_unload(self.offload_device, -extra_memory, force_patch_weights=force_patch_weights)
+                self.partially_unload(
+                    self.offload_device,
+                    -extra_memory,
+                    force_patch_weights=force_patch_weights,
+                )
                 return 0
             full_load = False
-            if self.model.model_lowvram == False and self.model.model_loaded_weight_memory > 0:
+            if (
+                self.model.model_lowvram == False
+                and self.model.model_loaded_weight_memory > 0
+            ):
                 self.apply_hooks(self.forced_hooks, force_apply=True)
                 return 0
             if self.model.model_loaded_weight_memory + extra_memory > self.model_size():
                 full_load = True
             current_used = self.model.model_loaded_weight_memory
             try:
-                self.load(device_to, lowvram_model_memory=current_used + extra_memory, force_patch_weights=force_patch_weights, full_load=full_load)
+                self.load(
+                    device_to,
+                    lowvram_model_memory=current_used + extra_memory,
+                    force_patch_weights=force_patch_weights,
+                    full_load=full_load,
+                )
             except Exception as e:
                 self.detach()
                 raise e
@@ -959,8 +1171,12 @@ class ModelPatcher:
         return self.model.device
 
     def calculate_weight(self, patches, weight, key, intermediate_dtype=torch.float32):
-        logging.warning("The ModelPatcher.calculate_weight function is deprecated, please use: comfy.lora.calculate_weight instead")
-        return comfy.lora.calculate_weight(patches, weight, key, intermediate_dtype=intermediate_dtype)
+        logging.warning(
+            "The ModelPatcher.calculate_weight function is deprecated, please use: comfy.lora.calculate_weight instead"
+        )
+        return comfy.lora.calculate_weight(
+            patches, weight, key, intermediate_dtype=intermediate_dtype
+        )
 
     def cleanup(self):
         self.clean_hooks()
@@ -1031,7 +1247,7 @@ class ModelPatcher:
     def get_injections(self, key: str):
         return self.injections.get(key, None)
 
-    def set_additional_models(self, key: str, models: list['ModelPatcher']):
+    def set_additional_models(self, key: str, models: list["ModelPatcher"]):
         self.additional_models[key] = models
 
     def remove_additional_models(self, key: str):
@@ -1048,8 +1264,10 @@ class ModelPatcher:
         return all_models
 
     def get_nested_additional_models(self):
-        def _evaluate_sub_additional_models(prev_models: list[ModelPatcher], cache_set: set[ModelPatcher]):
-            '''Make sure circular references do not cause infinite recursion.'''
+        def _evaluate_sub_additional_models(
+            prev_models: list[ModelPatcher], cache_set: set[ModelPatcher]
+        ):
+            """Make sure circular references do not cause infinite recursion."""
             next_models = []
             for model in prev_models:
                 candidates = model.get_additional_models()
@@ -1063,11 +1281,15 @@ class ModelPatcher:
 
         all_models = self.get_additional_models()
         models_set = set(all_models)
-        real_all_models = _evaluate_sub_additional_models(prev_models=all_models, cache_set=models_set)
+        real_all_models = _evaluate_sub_additional_models(
+            prev_models=all_models, cache_set=models_set
+        )
         return real_all_models
 
     def use_ejected(self, skip_and_inject_on_exit_only=False):
-        return AutoPatcherEjector(self, skip_and_inject_on_exit_only=skip_and_inject_on_exit_only)
+        return AutoPatcherEjector(
+            self, skip_and_inject_on_exit_only=skip_and_inject_on_exit_only
+        )
 
     def inject_model(self):
         if self.is_injected or self.skip_injection:
@@ -1108,12 +1330,19 @@ class ModelPatcher:
     def set_hook_mode(self, hook_mode: comfy.hooks.EnumHookMode):
         self.hook_mode = hook_mode
 
-    def prepare_hook_patches_current_keyframe(self, t: torch.Tensor, hook_group: comfy.hooks.HookGroup, model_options: dict[str]):
+    def prepare_hook_patches_current_keyframe(
+        self,
+        t: torch.Tensor,
+        hook_group: comfy.hooks.HookGroup,
+        model_options: dict[str],
+    ):
         curr_t = t[0]
         reset_current_hooks = False
         transformer_options = model_options.get("transformer_options", {})
         for hook in hook_group.hooks:
-            changed = hook.hook_keyframe.prepare_current_keyframe(curr_t=curr_t, transformer_options=transformer_options)
+            changed = hook.hook_keyframe.prepare_current_keyframe(
+                curr_t=curr_t, transformer_options=transformer_options
+            )
             # if keyframe changed, remove any cached HookGroups that contain hook with the same hook_ref;
             # this will cause the weights to be recalculated when sampling
             if changed:
@@ -1129,8 +1358,13 @@ class ModelPatcher:
         if reset_current_hooks:
             self.patch_hooks(None)
 
-    def register_all_hook_patches(self, hooks: comfy.hooks.HookGroup, target_dict: dict[str], model_options: dict=None,
-                                  registered: comfy.hooks.HookGroup = None):
+    def register_all_hook_patches(
+        self,
+        hooks: comfy.hooks.HookGroup,
+        target_dict: dict[str],
+        model_options: dict = None,
+        registered: comfy.hooks.HookGroup = None,
+    ):
         self.restore_hook_patches()
         if registered is None:
             registered = comfy.hooks.HookGroup()
@@ -1146,14 +1380,24 @@ class ModelPatcher:
             self.hook_patches_backup = create_hook_patches_clone(self.hook_patches)
             for hook in weight_hooks_to_register:
                 hook.add_hook_patches(self, model_options, target_dict, registered)
-        for callback in self.get_all_callbacks(CallbacksMP.ON_REGISTER_ALL_HOOK_PATCHES):
+        for callback in self.get_all_callbacks(
+            CallbacksMP.ON_REGISTER_ALL_HOOK_PATCHES
+        ):
             callback(self, hooks, target_dict, model_options, registered)
         return registered
 
-    def add_hook_patches(self, hook: comfy.hooks.WeightHook, patches, strength_patch=1.0, strength_model=1.0):
+    def add_hook_patches(
+        self,
+        hook: comfy.hooks.WeightHook,
+        patches,
+        strength_patch=1.0,
+        strength_model=1.0,
+    ):
         with self.use_ejected():
             # NOTE: this mirrors behavior of add_patches func
-            current_hook_patches: dict[str,list] = self.hook_patches.get(hook.hook_ref, {})
+            current_hook_patches: dict[str, list] = self.hook_patches.get(
+                hook.hook_ref, {}
+            )
             p = set()
             model_sd = self.model.state_dict()
             for k in patches:
@@ -1170,7 +1414,9 @@ class ModelPatcher:
                 if key in model_sd:
                     p.add(k)
                     current_patches: list[tuple] = current_hook_patches.get(key, [])
-                    current_patches.append((strength_patch, patches[k], strength_model, offset, function))
+                    current_patches.append(
+                        (strength_patch, patches[k], strength_model, offset, function)
+                    )
                     current_hook_patches[key] = current_patches
             self.hook_patches[hook.hook_ref] = current_hook_patches
             # since should care about these patches too to determine if same model, reroll patches_uuid
@@ -1196,14 +1442,25 @@ class ModelPatcher:
                     combined_patches[key] = current_patches
         return combined_patches
 
-    def apply_hooks(self, hooks: comfy.hooks.HookGroup, transformer_options: dict=None, force_apply=False):
+    def apply_hooks(
+        self,
+        hooks: comfy.hooks.HookGroup,
+        transformer_options: dict = None,
+        force_apply=False,
+    ):
         # TODO: return transformer_options dict with any additions from hooks
-        if self.current_hooks == hooks and (not force_apply or (not self.is_clip and hooks is None)):
-            return comfy.hooks.create_transformer_options_from_hooks(self, hooks, transformer_options)
+        if self.current_hooks == hooks and (
+            not force_apply or (not self.is_clip and hooks is None)
+        ):
+            return comfy.hooks.create_transformer_options_from_hooks(
+                self, hooks, transformer_options
+            )
         self.patch_hooks(hooks=hooks)
         for callback in self.get_all_callbacks(CallbacksMP.ON_APPLY_HOOKS):
             callback(self, hooks)
-        return comfy.hooks.create_transformer_options_from_hooks(self, hooks, transformer_options)
+        return comfy.hooks.create_transformer_options_from_hooks(
+            self, hooks, transformer_options
+        )
 
     def patch_hooks(self, hooks: comfy.hooks.HookGroup):
         with self.use_ejected():
@@ -1212,17 +1469,27 @@ class ModelPatcher:
                 memory_counter = None
                 if self.hook_mode == comfy.hooks.EnumHookMode.MaxSpeed:
                     # TODO: minimum_counter should have a minimum that conforms to loaded model requirements
-                    memory_counter = MemoryCounter(initial=comfy.model_management.get_free_memory(self.load_device),
-                                                minimum=comfy.model_management.minimum_inference_memory()*2)
+                    memory_counter = MemoryCounter(
+                        initial=comfy.model_management.get_free_memory(
+                            self.load_device
+                        ),
+                        minimum=comfy.model_management.minimum_inference_memory() * 2,
+                    )
                 # if have cached weights for hooks, use it
                 cached_weights = self.cached_hook_patches.get(hooks, None)
                 if cached_weights is not None:
                     model_sd_keys_set = set(model_sd_keys)
                     for key in cached_weights:
                         if key not in model_sd_keys:
-                            logging.warning(f"Cached hook could not patch. Key does not exist in model: {key}")
+                            logging.warning(
+                                f"Cached hook could not patch. Key does not exist in model: {key}"
+                            )
                             continue
-                        self.patch_cached_hook_weights(cached_weights=cached_weights, key=key, memory_counter=memory_counter)
+                        self.patch_cached_hook_weights(
+                            cached_weights=cached_weights,
+                            key=key,
+                            memory_counter=memory_counter,
+                        )
                         model_sd_keys_set.remove(key)
                     self.unpatch_hooks(model_sd_keys_set)
                 else:
@@ -1233,15 +1500,24 @@ class ModelPatcher:
                         original_weights = self.get_key_patches()
                     for key in relevant_patches:
                         if key not in model_sd_keys:
-                            logging.warning(f"Cached hook would not patch. Key does not exist in model: {key}")
+                            logging.warning(
+                                f"Cached hook would not patch. Key does not exist in model: {key}"
+                            )
                             continue
-                        self.patch_hook_weight_to_device(hooks=hooks, combined_patches=relevant_patches, key=key, original_weights=original_weights,
-                                                            memory_counter=memory_counter)
+                        self.patch_hook_weight_to_device(
+                            hooks=hooks,
+                            combined_patches=relevant_patches,
+                            key=key,
+                            original_weights=original_weights,
+                            memory_counter=memory_counter,
+                        )
             else:
                 self.unpatch_hooks()
             self.current_hooks = hooks
 
-    def patch_cached_hook_weights(self, cached_weights: dict, key: str, memory_counter: MemoryCounter):
+    def patch_cached_hook_weights(
+        self, cached_weights: dict, key: str, memory_counter: MemoryCounter
+    ):
         if key not in self.hook_backup:
             weight: torch.Tensor = comfy.utils.get_attr(self.model, key)
             target_device = self.offload_device
@@ -1249,14 +1525,26 @@ class ModelPatcher:
                 used = memory_counter.use(weight)
                 if used:
                     target_device = weight.device
-            self.hook_backup[key] = (weight.to(device=target_device, copy=True), weight.device)
-        comfy.utils.copy_to_param(self.model, key, cached_weights[key][0].to(device=cached_weights[key][1]))
+            self.hook_backup[key] = (
+                weight.to(device=target_device, copy=True),
+                weight.device,
+            )
+        comfy.utils.copy_to_param(
+            self.model, key, cached_weights[key][0].to(device=cached_weights[key][1])
+        )
 
     def clear_cached_hook_weights(self):
         self.cached_hook_patches.clear()
         self.patch_hooks(None)
 
-    def patch_hook_weight_to_device(self, hooks: comfy.hooks.HookGroup, combined_patches: dict, key: str, original_weights: dict, memory_counter: MemoryCounter):
+    def patch_hook_weight_to_device(
+        self,
+        hooks: comfy.hooks.HookGroup,
+        combined_patches: dict,
+        key: str,
+        original_weights: dict,
+        memory_counter: MemoryCounter,
+    ):
         if key not in combined_patches:
             return
 
@@ -1268,18 +1556,25 @@ class ModelPatcher:
                 used = memory_counter.use(weight)
                 if used:
                     target_device = weight.device
-            self.hook_backup[key] = (weight.to(device=target_device, copy=True), weight.device)
+            self.hook_backup[key] = (
+                weight.to(device=target_device, copy=True),
+                weight.device,
+            )
         # TODO: properly handle LowVramPatch, if it ends up an issue
-        temp_weight = comfy.model_management.cast_to_device(weight, weight.device, torch.float32, copy=True)
+        temp_weight = comfy.model_management.cast_to_device(
+            weight, weight.device, torch.float32, copy=True
+        )
         if convert_func is not None:
             temp_weight = convert_func(temp_weight, inplace=True)
 
-        out_weight = comfy.lora.calculate_weight(combined_patches[key],
-                                                 temp_weight,
-                                                 key, original_weights=original_weights)
+        out_weight = comfy.lora.calculate_weight(
+            combined_patches[key], temp_weight, key, original_weights=original_weights
+        )
         del original_weights[key]
         if set_func is None:
-            out_weight = comfy.float.stochastic_rounding(out_weight, weight.dtype, seed=string_to_seed(key))
+            out_weight = comfy.float.stochastic_rounding(
+                out_weight, weight.dtype, seed=string_to_seed(key)
+            )
             comfy.utils.copy_to_param(self.model, key, out_weight)
         else:
             set_func(out_weight, inplace_update=True, seed=string_to_seed(key))
@@ -1290,12 +1585,15 @@ class ModelPatcher:
             if used:
                 target_device = weight.device
             self.cached_hook_patches.setdefault(hooks, {})
-            self.cached_hook_patches[hooks][key] = (out_weight.to(device=target_device, copy=False), weight.device)
+            self.cached_hook_patches[hooks][key] = (
+                out_weight.to(device=target_device, copy=False),
+                weight.device,
+            )
         del temp_weight
         del out_weight
         del weight
 
-    def unpatch_hooks(self, whitelist_keys_set: set[str]=None) -> None:
+    def unpatch_hooks(self, whitelist_keys_set: set[str] = None) -> None:
         with self.use_ejected():
             if len(self.hook_backup) == 0:
                 self.current_hooks = None
@@ -1304,11 +1602,19 @@ class ModelPatcher:
             if whitelist_keys_set:
                 for k in keys:
                     if k in whitelist_keys_set:
-                        comfy.utils.copy_to_param(self.model, k, self.hook_backup[k][0].to(device=self.hook_backup[k][1]))
+                        comfy.utils.copy_to_param(
+                            self.model,
+                            k,
+                            self.hook_backup[k][0].to(device=self.hook_backup[k][1]),
+                        )
                         self.hook_backup.pop(k)
             else:
                 for k in keys:
-                    comfy.utils.copy_to_param(self.model, k, self.hook_backup[k][0].to(device=self.hook_backup[k][1]))
+                    comfy.utils.copy_to_param(
+                        self.model,
+                        k,
+                        self.hook_backup[k][0].to(device=self.hook_backup[k][1]),
+                    )
 
                 self.hook_backup.clear()
                 self.current_hooks = None
@@ -1320,4 +1626,3 @@ class ModelPatcher:
     def __del__(self):
         self.unpin_all_weights()
         self.detach(unpatch_all=False)
-

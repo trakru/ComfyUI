@@ -23,5 +23,3 @@ To update the ComfyUI code: update\update_comfyui.bat
 TO SHARE MODELS BETWEEN COMFYUI AND ANOTHER UI:
 In the ComfyUI directory you will find a file: extra_model_paths.yaml.example
 Rename this file to: extra_model_paths.yaml and edit it with your favorite text editor.
-
-

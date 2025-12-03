@@ -63,7 +63,9 @@ async def upload_images_to_comfyapi(
     for idx in range(min(batch_len, max_images)):
         tensor = image[idx] if is_batch else image
         img_io = tensor_to_bytesio(tensor, mime_type=mime_type)
-        url = await upload_file_to_comfyapi(cls, img_io, img_io.name, mime_type, wait_label)
+        url = await upload_file_to_comfyapi(
+            cls, img_io, img_io.name, mime_type, wait_label
+        )
         download_urls.append(url)
     return download_urls
 
@@ -84,7 +86,9 @@ async def upload_audio_to_comfyapi(
     sample_rate: int = audio["sample_rate"]
     waveform: torch.Tensor = audio["waveform"]
     audio_data_np = audio_tensor_to_contiguous_ndarray(waveform)
-    audio_bytes_io = audio_ndarray_to_bytesio(audio_data_np, sample_rate, container_format, codec_name)
+    audio_bytes_io = audio_ndarray_to_bytesio(
+        audio_data_np, sample_rate, container_format, codec_name
+    )
     return await upload_file_to_comfyapi(cls, audio_bytes_io, filename, mime_type)
 
 
@@ -119,7 +123,9 @@ async def upload_video_to_comfyapi(
     video.save_to(video_bytes_io, format=container, codec=codec)
     video_bytes_io.seek(0)
 
-    return await upload_file_to_comfyapi(cls, video_bytes_io, filename, upload_mime_type)
+    return await upload_file_to_comfyapi(
+        cls, video_bytes_io, filename, upload_mime_type
+    )
 
 
 async def upload_file_to_comfyapi(
@@ -133,7 +139,9 @@ async def upload_file_to_comfyapi(
     if upload_mime_type is None:
         request_object = UploadRequest(file_name=filename)
     else:
-        request_object = UploadRequest(file_name=filename, content_type=upload_mime_type)
+        request_object = UploadRequest(
+            file_name=filename, content_type=upload_mime_type
+        )
     create_resp = await sync_op(
         cls,
         endpoint=ApiEndpoint(path="/customers/storage", method="POST"),
@@ -194,7 +202,9 @@ async def upload_file(
     if content_type:
         headers["Content-Type"] = content_type
     else:
-        skip_auto_headers.add("Content-Type")  # Don't let aiohttp add Content-Type, it can break the signed request
+        skip_auto_headers.add(
+            "Content-Type"
+        )  # Don't let aiohttp add Content-Type, it can break the signed request
 
     attempt = 0
     delay = retry_delay
@@ -212,7 +222,9 @@ async def upload_file(
                     if is_processing_interrupted():
                         return
                     if wait_label:
-                        _display_time_progress(cls, wait_label, int(time.monotonic() - start_ts), None)
+                        _display_time_progress(
+                            cls, wait_label, int(time.monotonic() - start_ts), None
+                        )
                     await asyncio.sleep(1.0)
             except asyncio.CancelledError:
                 return
@@ -233,10 +245,17 @@ async def upload_file(
                 logging.debug("[DEBUG] upload request logging failed: %s", e)
 
             sess = aiohttp.ClientSession(timeout=timeout)
-            req = sess.put(upload_url, data=data, headers=headers, skip_auto_headers=skip_auto_headers)
+            req = sess.put(
+                upload_url,
+                data=data,
+                headers=headers,
+                skip_auto_headers=skip_auto_headers,
+            )
             req_task = asyncio.create_task(req)
 
-            done, pending = await asyncio.wait({req_task, monitor_task}, return_when=asyncio.FIRST_COMPLETED)
+            done, pending = await asyncio.wait(
+                {req_task, monitor_task}, return_when=asyncio.FIRST_COMPLETED
+            )
 
             if monitor_task in done and req_task in pending:
                 req_task.cancel()
@@ -264,14 +283,19 @@ async def upload_file(
                             response_content=body,
                             error_message=msg,
                         )
-                    if resp.status in {408, 429, 500, 502, 503, 504} and attempt <= max_retries:
+                    if (
+                        resp.status in {408, 429, 500, 502, 503, 504}
+                        and attempt <= max_retries
+                    ):
                         await sleep_with_interrupt(
                             delay,
                             cls,
                             wait_label,
                             start_ts,
                             None,
-                            display_callback=_display_time_progress if wait_label else None,
+                            display_callback=_display_time_progress
+                            if wait_label
+                            else None,
                         )
                         delay *= retry_backoff
                         continue
@@ -317,7 +341,9 @@ async def upload_file(
                 raise LocalNetworkError(
                     "Unable to connect to the network. Please check your internet connection and try again."
                 ) from e
-            raise ApiServerError("The API service appears unreachable at this time.") from e
+            raise ApiServerError(
+                "The API service appears unreachable at this time."
+            ) from e
         finally:
             stop_evt.set()
             if monitor_task:
@@ -332,7 +358,11 @@ async def upload_file(
 def _generate_operation_id(method: str, url: str, attempt: int, op_uuid: str) -> str:
     try:
         parsed = urlparse(url)
-        slug = (parsed.path.rsplit("/", 1)[-1] or parsed.netloc or "upload").strip("/").replace("/", "_")
+        slug = (
+            (parsed.path.rsplit("/", 1)[-1] or parsed.netloc or "upload")
+            .strip("/")
+            .replace("/", "_")
+        )
     except Exception:
         slug = "upload"
     return f"{method}_{slug}_{op_uuid}_try{attempt}"

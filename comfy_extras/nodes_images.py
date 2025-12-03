@@ -21,15 +21,32 @@ from server import PromptServer
 
 MAX_RESOLUTION = nodes.MAX_RESOLUTION
 
+
 class ImageCrop:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": { "image": ("IMAGE",),
-                              "width": ("INT", {"default": 512, "min": 1, "max": MAX_RESOLUTION, "step": 1}),
-                              "height": ("INT", {"default": 512, "min": 1, "max": MAX_RESOLUTION, "step": 1}),
-                              "x": ("INT", {"default": 0, "min": 0, "max": MAX_RESOLUTION, "step": 1}),
-                              "y": ("INT", {"default": 0, "min": 0, "max": MAX_RESOLUTION, "step": 1}),
-                              }}
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "width": (
+                    "INT",
+                    {"default": 512, "min": 1, "max": MAX_RESOLUTION, "step": 1},
+                ),
+                "height": (
+                    "INT",
+                    {"default": 512, "min": 1, "max": MAX_RESOLUTION, "step": 1},
+                ),
+                "x": (
+                    "INT",
+                    {"default": 0, "min": 0, "max": MAX_RESOLUTION, "step": 1},
+                ),
+                "y": (
+                    "INT",
+                    {"default": 0, "min": 0, "max": MAX_RESOLUTION, "step": 1},
+                ),
+            }
+        }
+
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "crop"
 
@@ -40,31 +57,41 @@ class ImageCrop:
         y = min(y, image.shape[1] - 1)
         to_x = width + x
         to_y = height + y
-        img = image[:,y:to_y, x:to_x, :]
+        img = image[:, y:to_y, x:to_x, :]
         return (img,)
+
 
 class RepeatImageBatch:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": { "image": ("IMAGE",),
-                              "amount": ("INT", {"default": 1, "min": 1, "max": 4096}),
-                              }}
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "amount": ("INT", {"default": 1, "min": 1, "max": 4096}),
+            }
+        }
+
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "repeat"
 
     CATEGORY = "image/batch"
 
     def repeat(self, image, amount):
-        s = image.repeat((amount, 1,1,1))
+        s = image.repeat((amount, 1, 1, 1))
         return (s,)
+
 
 class ImageFromBatch:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": { "image": ("IMAGE",),
-                              "batch_index": ("INT", {"default": 0, "min": 0, "max": 4095}),
-                              "length": ("INT", {"default": 1, "min": 1, "max": 4096}),
-                              }}
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "batch_index": ("INT", {"default": 0, "min": 0, "max": 4095}),
+                "length": ("INT", {"default": 1, "min": 1, "max": 4096}),
+            }
+        }
+
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "frombatch"
 
@@ -74,17 +101,33 @@ class ImageFromBatch:
         s_in = image
         batch_index = min(s_in.shape[0] - 1, batch_index)
         length = min(s_in.shape[0] - batch_index, length)
-        s = s_in[batch_index:batch_index + length].clone()
+        s = s_in[batch_index : batch_index + length].clone()
         return (s,)
 
 
 class ImageAddNoise:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": { "image": ("IMAGE",),
-                              "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": True, "tooltip": "The random seed used for creating the noise."}),
-                              "strength": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                              }}
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "seed": (
+                    "INT",
+                    {
+                        "default": 0,
+                        "min": 0,
+                        "max": 0xFFFFFFFFFFFFFFFF,
+                        "control_after_generate": True,
+                        "tooltip": "The random seed used for creating the noise.",
+                    },
+                ),
+                "strength": (
+                    "FLOAT",
+                    {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01},
+                ),
+            }
+        }
+
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "repeat"
 
@@ -92,8 +135,17 @@ class ImageAddNoise:
 
     def repeat(self, image, seed, strength):
         generator = torch.manual_seed(seed)
-        s = torch.clip((image + strength * torch.randn(image.size(), generator=generator, device="cpu").to(image)), min=0.0, max=1.0)
+        s = torch.clip(
+            (
+                image
+                + strength
+                * torch.randn(image.size(), generator=generator, device="cpu").to(image)
+            ),
+            min=0.0,
+            max=1.0,
+        )
         return (s,)
+
 
 class SaveAnimatedWEBP:
     def __init__(self):
@@ -102,19 +154,24 @@ class SaveAnimatedWEBP:
         self.prefix_append = ""
 
     methods = {"default": 4, "fastest": 0, "slowest": 6}
+
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"images": ("IMAGE", ),
-                     "filename_prefix": ("STRING", {"default": "ComfyUI"}),
-                     "fps": ("FLOAT", {"default": 6.0, "min": 0.01, "max": 1000.0, "step": 0.01}),
-                     "lossless": ("BOOLEAN", {"default": True}),
-                     "quality": ("INT", {"default": 80, "min": 0, "max": 100}),
-                     "method": (list(s.methods.keys()),),
-                     # "num_frames": ("INT", {"default": 0, "min": 0, "max": 8192}),
-                     },
-                "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
-                }
+        return {
+            "required": {
+                "images": ("IMAGE",),
+                "filename_prefix": ("STRING", {"default": "ComfyUI"}),
+                "fps": (
+                    "FLOAT",
+                    {"default": 6.0, "min": 0.01, "max": 1000.0, "step": 0.01},
+                ),
+                "lossless": ("BOOLEAN", {"default": True}),
+                "quality": ("INT", {"default": 80, "min": 0, "max": 100}),
+                "method": (list(s.methods.keys()),),
+                # "num_frames": ("INT", {"default": 0, "min": 0, "max": 8192}),
+            },
+            "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
+        }
 
     RETURN_TYPES = ()
     FUNCTION = "save_images"
@@ -123,14 +180,29 @@ class SaveAnimatedWEBP:
 
     CATEGORY = "image/animation"
 
-    def save_images(self, images, fps, filename_prefix, lossless, quality, method, num_frames=0, prompt=None, extra_pnginfo=None):
+    def save_images(
+        self,
+        images,
+        fps,
+        filename_prefix,
+        lossless,
+        quality,
+        method,
+        num_frames=0,
+        prompt=None,
+        extra_pnginfo=None,
+    ):
         method = self.methods.get(method)
         filename_prefix += self.prefix_append
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0])
+        full_output_folder, filename, counter, subfolder, filename_prefix = (
+            folder_paths.get_save_image_path(
+                filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0]
+            )
+        )
         results: list[FileLocator] = []
         pil_images = []
         for image in images:
-            i = 255. * image.cpu().numpy()
+            i = 255.0 * image.cpu().numpy()
             img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
             pil_images.append(img)
 
@@ -139,9 +211,11 @@ class SaveAnimatedWEBP:
             if prompt is not None:
                 metadata[0x0110] = "prompt:{}".format(json.dumps(prompt))
             if extra_pnginfo is not None:
-                inital_exif = 0x010f
+                inital_exif = 0x010F
                 for x in extra_pnginfo:
-                    metadata[inital_exif] = "{}:{}".format(x, json.dumps(extra_pnginfo[x]))
+                    metadata[inital_exif] = "{}:{}".format(
+                        x, json.dumps(extra_pnginfo[x])
+                    )
                     inital_exif -= 1
 
         if num_frames == 0:
@@ -150,16 +224,24 @@ class SaveAnimatedWEBP:
         c = len(pil_images)
         for i in range(0, c, num_frames):
             file = f"{filename}_{counter:05}_.webp"
-            pil_images[i].save(os.path.join(full_output_folder, file), save_all=True, duration=int(1000.0/fps), append_images=pil_images[i + 1:i + num_frames], exif=metadata, lossless=lossless, quality=quality, method=method)
-            results.append({
-                "filename": file,
-                "subfolder": subfolder,
-                "type": self.type
-            })
+            pil_images[i].save(
+                os.path.join(full_output_folder, file),
+                save_all=True,
+                duration=int(1000.0 / fps),
+                append_images=pil_images[i + 1 : i + num_frames],
+                exif=metadata,
+                lossless=lossless,
+                quality=quality,
+                method=method,
+            )
+            results.append(
+                {"filename": file, "subfolder": subfolder, "type": self.type}
+            )
             counter += 1
 
         animated = num_frames != 1
-        return { "ui": { "images": results, "animated": (animated,) } }
+        return {"ui": {"images": results, "animated": (animated,)}}
+
 
 class SaveAnimatedPNG:
     def __init__(self):
@@ -169,14 +251,18 @@ class SaveAnimatedPNG:
 
     @classmethod
     def INPUT_TYPES(s):
-        return {"required":
-                    {"images": ("IMAGE", ),
-                     "filename_prefix": ("STRING", {"default": "ComfyUI"}),
-                     "fps": ("FLOAT", {"default": 6.0, "min": 0.01, "max": 1000.0, "step": 0.01}),
-                     "compress_level": ("INT", {"default": 4, "min": 0, "max": 9})
-                     },
-                "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
-                }
+        return {
+            "required": {
+                "images": ("IMAGE",),
+                "filename_prefix": ("STRING", {"default": "ComfyUI"}),
+                "fps": (
+                    "FLOAT",
+                    {"default": 6.0, "min": 0.01, "max": 1000.0, "step": 0.01},
+                ),
+                "compress_level": ("INT", {"default": 4, "min": 0, "max": 9}),
+            },
+            "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
+        }
 
     RETURN_TYPES = ()
     FUNCTION = "save_images"
@@ -185,13 +271,25 @@ class SaveAnimatedPNG:
 
     CATEGORY = "image/animation"
 
-    def save_images(self, images, fps, compress_level, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None):
+    def save_images(
+        self,
+        images,
+        fps,
+        compress_level,
+        filename_prefix="ComfyUI",
+        prompt=None,
+        extra_pnginfo=None,
+    ):
         filename_prefix += self.prefix_append
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0])
+        full_output_folder, filename, counter, subfolder, filename_prefix = (
+            folder_paths.get_save_image_path(
+                filename_prefix, self.output_dir, images[0].shape[1], images[0].shape[0]
+            )
+        )
         results = list()
         pil_images = []
         for image in images:
-            i = 255. * image.cpu().numpy()
+            i = 255.0 * image.cpu().numpy()
             img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
             pil_images.append(img)
 
@@ -199,33 +297,50 @@ class SaveAnimatedPNG:
         if not args.disable_metadata:
             metadata = PngInfo()
             if prompt is not None:
-                metadata.add(b"comf", "prompt".encode("latin-1", "strict") + b"\0" + json.dumps(prompt).encode("latin-1", "strict"), after_idat=True)
+                metadata.add(
+                    b"comf",
+                    "prompt".encode("latin-1", "strict")
+                    + b"\0"
+                    + json.dumps(prompt).encode("latin-1", "strict"),
+                    after_idat=True,
+                )
             if extra_pnginfo is not None:
                 for x in extra_pnginfo:
-                    metadata.add(b"comf", x.encode("latin-1", "strict") + b"\0" + json.dumps(extra_pnginfo[x]).encode("latin-1", "strict"), after_idat=True)
+                    metadata.add(
+                        b"comf",
+                        x.encode("latin-1", "strict")
+                        + b"\0"
+                        + json.dumps(extra_pnginfo[x]).encode("latin-1", "strict"),
+                        after_idat=True,
+                    )
 
         file = f"{filename}_{counter:05}_.png"
-        pil_images[0].save(os.path.join(full_output_folder, file), pnginfo=metadata, compress_level=compress_level, save_all=True, duration=int(1000.0/fps), append_images=pil_images[1:])
-        results.append({
-            "filename": file,
-            "subfolder": subfolder,
-            "type": self.type
-        })
+        pil_images[0].save(
+            os.path.join(full_output_folder, file),
+            pnginfo=metadata,
+            compress_level=compress_level,
+            save_all=True,
+            duration=int(1000.0 / fps),
+            append_images=pil_images[1:],
+        )
+        results.append({"filename": file, "subfolder": subfolder, "type": self.type})
 
-        return { "ui": { "images": results, "animated": (True,)} }
+        return {"ui": {"images": results, "animated": (True,)}}
+
 
 class SVG:
     """
     Stores SVG representations via a list of BytesIO objects.
     """
+
     def __init__(self, data: list[BytesIO]):
         self.data = data
 
-    def combine(self, other: 'SVG') -> 'SVG':
+    def combine(self, other: "SVG") -> "SVG":
         return SVG(self.data + other.data)
 
     @staticmethod
-    def combine_all(svgs: list['SVG']) -> 'SVG':
+    def combine_all(svgs: list["SVG"]) -> "SVG":
         all_svgs_list: list[BytesIO] = []
         for svg_item in svgs:
             all_svgs_list.extend(svg_item.data)
@@ -329,11 +444,21 @@ Optional spacing can be added between images.
                     if h1 < target_h:
                         pad_h = target_h - h1
                         pad_top, pad_bottom = pad_h // 2, pad_h - pad_h // 2
-                        image1 = torch.nn.functional.pad(image1, (0, 0, 0, 0, pad_top, pad_bottom), mode='constant', value=pad_value)
+                        image1 = torch.nn.functional.pad(
+                            image1,
+                            (0, 0, 0, 0, pad_top, pad_bottom),
+                            mode="constant",
+                            value=pad_value,
+                        )
                     if h2 < target_h:
                         pad_h = target_h - h2
                         pad_top, pad_bottom = pad_h // 2, pad_h - pad_h // 2
-                        image2 = torch.nn.functional.pad(image2, (0, 0, 0, 0, pad_top, pad_bottom), mode='constant', value=pad_value)
+                        image2 = torch.nn.functional.pad(
+                            image2,
+                            (0, 0, 0, 0, pad_top, pad_bottom),
+                            mode="constant",
+                            value=pad_value,
+                        )
             else:  # up, down
                 # For vertical concat, pad widths to match
                 if w1 != w2:
@@ -341,11 +466,21 @@ Optional spacing can be added between images.
                     if w1 < target_w:
                         pad_w = target_w - w1
                         pad_left, pad_right = pad_w // 2, pad_w - pad_w // 2
-                        image1 = torch.nn.functional.pad(image1, (0, 0, pad_left, pad_right), mode='constant', value=pad_value)
+                        image1 = torch.nn.functional.pad(
+                            image1,
+                            (0, 0, pad_left, pad_right),
+                            mode="constant",
+                            value=pad_value,
+                        )
                     if w2 < target_w:
                         pad_w = target_w - w2
                         pad_left, pad_right = pad_w // 2, pad_w - pad_w // 2
-                        image2 = torch.nn.functional.pad(image2, (0, 0, pad_left, pad_right), mode='constant', value=pad_value)
+                        image2 = torch.nn.functional.pad(
+                            image2,
+                            (0, 0, pad_left, pad_right),
+                            mode="constant",
+                            value=pad_value,
+                        )
 
         # Ensure same number of channels
         if image1.shape[-1] != image2.shape[-1]:
@@ -414,26 +549,25 @@ Optional spacing can be added between images.
         concat_dim = 2 if direction in ["left", "right"] else 1
         return (torch.cat(images, dim=concat_dim),)
 
+
 class ResizeAndPadImage:
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
                 "image": ("IMAGE",),
-                "target_width": ("INT", {
-                    "default": 512,
-                    "min": 1,
-                    "max": MAX_RESOLUTION,
-                    "step": 1
-                }),
-                "target_height": ("INT", {
-                    "default": 512,
-                    "min": 1,
-                    "max": MAX_RESOLUTION,
-                    "step": 1
-                }),
+                "target_width": (
+                    "INT",
+                    {"default": 512, "min": 1, "max": MAX_RESOLUTION, "step": 1},
+                ),
+                "target_height": (
+                    "INT",
+                    {"default": 512, "min": 1, "max": MAX_RESOLUTION, "step": 1},
+                ),
                 "padding_color": (["white", "black"],),
-                "interpolation": (["area", "bicubic", "nearest-exact", "bilinear", "lanczos"],),
+                "interpolation": (
+                    ["area", "bicubic", "nearest-exact", "bilinear", "lanczos"],
+                ),
             }
         }
 
@@ -441,7 +575,9 @@ class ResizeAndPadImage:
     FUNCTION = "resize_and_pad"
     CATEGORY = "image/transform"
 
-    def resize_and_pad(self, image, target_width, target_height, padding_color, interpolation):
+    def resize_and_pad(
+        self, image, target_width, target_height, padding_color, interpolation
+    ):
         batch_size, orig_height, orig_width, channels = image.shape
 
         scale_w = target_width / orig_width
@@ -453,23 +589,28 @@ class ResizeAndPadImage:
 
         image_permuted = image.permute(0, 3, 1, 2)
 
-        resized = comfy.utils.common_upscale(image_permuted, new_width, new_height, interpolation, "disabled")
+        resized = comfy.utils.common_upscale(
+            image_permuted, new_width, new_height, interpolation, "disabled"
+        )
 
         pad_value = 0.0 if padding_color == "black" else 1.0
         padded = torch.full(
             (batch_size, channels, target_height, target_width),
             pad_value,
             dtype=image.dtype,
-            device=image.device
+            device=image.device,
         )
 
         y_offset = (target_height - new_height) // 2
         x_offset = (target_width - new_width) // 2
 
-        padded[:, :, y_offset:y_offset + new_height, x_offset:x_offset + new_width] = resized
+        padded[
+            :, :, y_offset : y_offset + new_height, x_offset : x_offset + new_width
+        ] = resized
 
         output = padded.permute(0, 2, 3, 1)
         return (output,)
+
 
 class SaveSVGNode:
     """
@@ -484,25 +625,32 @@ class SaveSVGNode:
     RETURN_TYPES = ()
     DESCRIPTION = cleandoc(__doc__ or "")  # Handle potential None value
     FUNCTION = "save_svg"
-    CATEGORY = "image/save" # Changed
+    CATEGORY = "image/save"  # Changed
     OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
-                "svg": ("SVG",), # Changed
-                "filename_prefix": ("STRING", {"default": "svg/ComfyUI", "tooltip": "The prefix for the file to save. This may include formatting information such as %date:yyyy-MM-dd% or %Empty Latent Image.width% to include values from nodes."})
+                "svg": ("SVG",),  # Changed
+                "filename_prefix": (
+                    "STRING",
+                    {
+                        "default": "svg/ComfyUI",
+                        "tooltip": "The prefix for the file to save. This may include formatting information such as %date:yyyy-MM-dd% or %Empty Latent Image.width% to include values from nodes.",
+                    },
+                ),
             },
-            "hidden": {
-                "prompt": "PROMPT",
-                "extra_pnginfo": "EXTRA_PNGINFO"
-            }
+            "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
 
-    def save_svg(self, svg: SVG, filename_prefix="svg/ComfyUI", prompt=None, extra_pnginfo=None):
+    def save_svg(
+        self, svg: SVG, filename_prefix="svg/ComfyUI", prompt=None, extra_pnginfo=None
+    ):
         filename_prefix += self.prefix_append
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(filename_prefix, self.output_dir)
+        full_output_folder, filename, counter, subfolder, filename_prefix = (
+            folder_paths.get_save_image_path(filename_prefix, self.output_dir)
+        )
         results = list()
 
         # Prepare metadata JSON
@@ -521,7 +669,7 @@ class SaveSVGNode:
 
             # Read SVG content
             svg_bytes.seek(0)
-            svg_content = svg_bytes.read().decode('utf-8')
+            svg_content = svg_bytes.read().decode("utf-8")
 
             # Inject metadata if available
             if metadata_json:
@@ -532,28 +680,29 @@ class SaveSVGNode:
                 ]]>
             </metadata>
             """
+
                 # Insert metadata after opening svg tag using regex with a replacement function
                 def replacement(match):
                     # match.group(1) contains the captured <svg> tag
-                    return match.group(1) + '\n' + metadata_element
+                    return match.group(1) + "\n" + metadata_element
 
                 # Apply the substitution
-                svg_content = re.sub(r'(<svg[^>]*>)', replacement, svg_content, flags=re.UNICODE)
+                svg_content = re.sub(
+                    r"(<svg[^>]*>)", replacement, svg_content, flags=re.UNICODE
+                )
 
             # Write the modified SVG to file
-            with open(os.path.join(full_output_folder, file), 'wb') as svg_file:
-                svg_file.write(svg_content.encode('utf-8'))
+            with open(os.path.join(full_output_folder, file), "wb") as svg_file:
+                svg_file.write(svg_content.encode("utf-8"))
 
-            results.append({
-                "filename": file,
-                "subfolder": subfolder,
-                "type": self.type
-            })
+            results.append(
+                {"filename": file, "subfolder": subfolder, "type": self.type}
+            )
             counter += 1
-        return { "ui": { "images": results } }
+        return {"ui": {"images": results}}
+
 
 class GetImageSize:
-
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -562,7 +711,7 @@ class GetImageSize:
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
-            }
+            },
         }
 
     RETURN_TYPES = (IO.INT, IO.INT, IO.INT)
@@ -570,7 +719,9 @@ class GetImageSize:
     FUNCTION = "get_size"
 
     CATEGORY = "image"
-    DESCRIPTION = """Returns width and height of the image, and passes it through unchanged."""
+    DESCRIPTION = (
+        """Returns width and height of the image, and passes it through unchanged."""
+    )
 
     def get_size(self, image, unique_id=None) -> tuple[int, int]:
         height = image.shape[1]
@@ -579,16 +730,24 @@ class GetImageSize:
 
         # Send progress text to display size on the node
         if unique_id:
-            PromptServer.instance.send_progress_text(f"width: {width}, height: {height}\n batch size: {batch_size}", unique_id)
+            PromptServer.instance.send_progress_text(
+                f"width: {width}, height: {height}\n batch size: {batch_size}",
+                unique_id,
+            )
 
         return width, height, batch_size
+
 
 class ImageRotate:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": { "image": (IO.IMAGE,),
-                              "rotation": (["none", "90 degrees", "180 degrees", "270 degrees"],),
-                              }}
+        return {
+            "required": {
+                "image": (IO.IMAGE,),
+                "rotation": (["none", "90 degrees", "180 degrees", "270 degrees"],),
+            }
+        }
+
     RETURN_TYPES = (IO.IMAGE,)
     FUNCTION = "rotate"
 
@@ -606,12 +765,17 @@ class ImageRotate:
         image = torch.rot90(image, k=rotate_by, dims=[2, 1])
         return (image,)
 
+
 class ImageFlip:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": { "image": (IO.IMAGE,),
-                              "flip_method": (["x-axis: vertically", "y-axis: horizontally"],),
-                              }}
+        return {
+            "required": {
+                "image": (IO.IMAGE,),
+                "flip_method": (["x-axis: vertically", "y-axis: horizontally"],),
+            }
+        }
+
     RETURN_TYPES = (IO.IMAGE,)
     FUNCTION = "flip"
 
@@ -625,14 +789,30 @@ class ImageFlip:
 
         return (image,)
 
+
 class ImageScaleToMaxDimension:
-    upscale_methods = ["area", "lanczos", "bilinear", "nearest-exact", "bilinear", "bicubic"]
+    upscale_methods = [
+        "area",
+        "lanczos",
+        "bilinear",
+        "nearest-exact",
+        "bilinear",
+        "bicubic",
+    ]
 
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": {"image": ("IMAGE",),
-                             "upscale_method": (s.upscale_methods,),
-                             "largest_size": ("INT", {"default": 512, "min": 0, "max": MAX_RESOLUTION, "step": 1})}}
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "upscale_method": (s.upscale_methods,),
+                "largest_size": (
+                    "INT",
+                    {"default": 512, "min": 0, "max": MAX_RESOLUTION, "step": 1},
+                ),
+            }
+        }
+
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "upscale"
 
@@ -653,9 +833,12 @@ class ImageScaleToMaxDimension:
             width = largest_size
 
         samples = image.movedim(-1, 1)
-        s = comfy.utils.common_upscale(samples, width, height, upscale_method, "disabled")
+        s = comfy.utils.common_upscale(
+            samples, width, height, upscale_method, "disabled"
+        )
         s = s.movedim(1, -1)
         return (s,)
+
 
 NODE_CLASS_MAPPINGS = {
     "ImageCrop": ImageCrop,
