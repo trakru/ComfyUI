@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell.exe:*)",
+      "Bash(echo:*)",
+      "Bash(cat:*)",
+      "Bash(git show:*)",
+      "Bash(NUMEXPR_MAX_THREADS=32 .venv/Scripts/python.exe:*)",
+      "Bash(export NUMEXPR_MAX_THREADS=32)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

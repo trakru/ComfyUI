@@ -274,6 +274,8 @@ If you get the "Torch not compiled with CUDA enabled" error, uninstall torch wit
 
 And install it again with the command above.
 
+For Windows-specific startup issues (symlink errors, missing packages, performance warnings), see the [Setup Fixes Documentation](docs/SETUP-FIXES.md).
+
 ### Dependencies
 
 Install the dependencies by opening your terminal inside the ComfyUI folder and:
