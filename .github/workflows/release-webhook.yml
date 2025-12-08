@@ -16,7 +16,7 @@ jobs:
           # Generate UUID for delivery ID
           DELIVERY_ID=$(uuidgen)
           HOOK_ID="release-webhook-$(date +%s)"
-          
+
           # Create webhook payload matching GitHub release webhook format
           PAYLOAD=$(cat <<EOF
           {
@@ -90,10 +90,10 @@ jobs:
           }
           EOF
           )
-          
+
           # Generate HMAC-SHA256 signature
           SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" -hex | cut -d' ' -f2)
-          
+
           # Send webhook with required headers
           curl -X POST "$WEBHOOK_URL" \
             -H "Content-Type: application/json" \
@@ -104,5 +104,5 @@ jobs:
             -H "User-Agent: GitHub-Actions-Webhook/1.0" \
             -d "$PAYLOAD" \
             --fail --silent --show-error
-          
+
           echo "✅ Release webhook sent successfully"

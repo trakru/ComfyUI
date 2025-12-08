@@ -30,7 +30,9 @@ def validate_image_dimensions(
     if max_width is not None and width > max_width:
         raise ValueError(f"Image width must be at most {max_width}px, got {width}px")
     if min_height is not None and height < min_height:
-        raise ValueError(f"Image height must be at least {min_height}px, got {height}px")
+        raise ValueError(
+            f"Image height must be at least {min_height}px, got {height}px"
+        )
     if max_height is not None and height > max_height:
         raise ValueError(f"Image height must be at most {max_height}px, got {height}px")
 
@@ -54,8 +56,8 @@ def validate_image_aspect_ratio(
 def validate_images_aspect_ratio_closeness(
     first_image: torch.Tensor,
     second_image: torch.Tensor,
-    min_rel: float,   # e.g. 0.8
-    max_rel: float,   # e.g. 1.25
+    min_rel: float,  # e.g. 0.8
+    max_rel: float,  # e.g. 1.25
     *,
     strict: bool = False,  # True -> (min, max); False -> [min, max]
 ) -> float:
@@ -76,7 +78,7 @@ def validate_images_aspect_ratio_closeness(
     limit = max(max_rel, 1.0 / min_rel)
     if (closeness >= limit) if strict else (closeness > limit):
         raise ValueError(
-            f"Aspect ratios must be close: ar1/ar2={ar1/ar2:.2g}, "
+            f"Aspect ratios must be close: ar1/ar2={ar1 / ar2:.2g}, "
             f"allowed range {min_rel}–{max_rel} (limit {limit:.2g})."
         )
     return closeness
@@ -113,7 +115,9 @@ def validate_video_dimensions(
     if max_width is not None and width > max_width:
         raise ValueError(f"Video width must be at most {max_width}px, got {width}px")
     if min_height is not None and height < min_height:
-        raise ValueError(f"Video height must be at least {min_height}px, got {height}px")
+        raise ValueError(
+            f"Video height must be at least {min_height}px, got {height}px"
+        )
     if max_height is not None and height > max_height:
         raise ValueError(f"Video height must be at most {max_height}px, got {height}px")
 
@@ -131,9 +135,13 @@ def validate_video_duration(
 
     epsilon = 0.0001
     if min_duration is not None and min_duration - epsilon > duration:
-        raise ValueError(f"Video duration must be at least {min_duration}s, got {duration}s")
+        raise ValueError(
+            f"Video duration must be at least {min_duration}s, got {duration}s"
+        )
     if max_duration is not None and duration > max_duration + epsilon:
-        raise ValueError(f"Video duration must be at most {max_duration}s, got {duration}s")
+        raise ValueError(
+            f"Video duration must be at most {max_duration}s, got {duration}s"
+        )
 
 
 def get_number_of_images(images):
@@ -151,9 +159,13 @@ def validate_audio_duration(
     dur = int(audio["waveform"].shape[-1]) / sr
     eps = 1.0 / sr
     if min_duration is not None and dur + eps < min_duration:
-        raise ValueError(f"Audio duration must be at least {min_duration}s, got {dur + eps:.2f}s")
+        raise ValueError(
+            f"Audio duration must be at least {min_duration}s, got {dur + eps:.2f}s"
+        )
     if max_duration is not None and dur - eps > max_duration:
-        raise ValueError(f"Audio duration must be at most {max_duration}s, got {dur - eps:.2f}s")
+        raise ValueError(
+            f"Audio duration must be at most {max_duration}s, got {dur - eps:.2f}s"
+        )
 
 
 def validate_string(
@@ -181,7 +193,9 @@ def validate_container_format_is_mp4(video: VideoInput) -> None:
     """Validates video container format is MP4."""
     container_format = video.get_container_format()
     if container_format not in ["mp4", "mov,mp4,m4a,3gp,3g2,mj2"]:
-        raise ValueError(f"Only MP4 container format supported. Got: {container_format}")
+        raise ValueError(
+            f"Only MP4 container format supported. Got: {container_format}"
+        )
 
 
 def _ratio_from_tuple(r: tuple[float, float]) -> float:
@@ -224,7 +238,9 @@ def _parse_aspect_ratio_string(ar_str: str) -> float:
         a = int(parts[0].strip())
         b = int(parts[1].strip())
     except ValueError as exc:
-        raise ValueError(f"Aspect ratio must contain integers separated by ':', got '{ar_str}'.") from exc
+        raise ValueError(
+            f"Aspect ratio must contain integers separated by ':', got '{ar_str}'."
+        ) from exc
     if a <= 0 or b <= 0:
         raise ValueError(f"Aspect ratio parts must be positive integers, got {a}:{b}.")
     return a / b

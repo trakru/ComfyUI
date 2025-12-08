@@ -26,7 +26,9 @@ class CLIPTextEncodeFlux(io.ComfyNode):
         tokens = clip.tokenize(clip_l)
         tokens["t5xxl"] = clip.tokenize(t5xxl)["t5xxl"]
 
-        return io.NodeOutput(clip.encode_from_tokens_scheduled(tokens, add_dict={"guidance": guidance}))
+        return io.NodeOutput(
+            clip.encode_from_tokens_scheduled(tokens, add_dict={"guidance": guidance})
+        )
 
     encode = execute  # TODO: remove
 
@@ -118,8 +120,12 @@ class FluxKontextImageScale(io.ComfyNode):
         width = image.shape[2]
         height = image.shape[1]
         aspect_ratio = width / height
-        _, width, height = min((abs(aspect_ratio - w / h), w, h) for w, h in PREFERED_KONTEXT_RESOLUTIONS)
-        image = comfy.utils.common_upscale(image.movedim(-1, 1), width, height, "lanczos", "center").movedim(1, -1)
+        _, width, height = min(
+            (abs(aspect_ratio - w / h), w, h) for w, h in PREFERED_KONTEXT_RESOLUTIONS
+        )
+        image = comfy.utils.common_upscale(
+            image.movedim(-1, 1), width, height, "lanczos", "center"
+        ).movedim(1, -1)
         return io.NodeOutput(image)
 
     scale = execute  # TODO: remove
@@ -148,7 +154,9 @@ class FluxKontextMultiReferenceLatentMethod(io.ComfyNode):
     def execute(cls, conditioning, reference_latents_method) -> io.NodeOutput:
         if "uxo" in reference_latents_method or "uso" in reference_latents_method:
             reference_latents_method = "uxo"
-        c = node_helpers.conditioning_set_values(conditioning, {"reference_latents_method": reference_latents_method})
+        c = node_helpers.conditioning_set_values(
+            conditioning, {"reference_latents_method": reference_latents_method}
+        )
         return io.NodeOutput(c)
 
     append = execute  # TODO: remove

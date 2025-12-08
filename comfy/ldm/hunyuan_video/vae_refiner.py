@@ -1,10 +1,17 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from comfy.ldm.modules.diffusionmodules.model import ResnetBlock, AttnBlock, VideoConv3d, Normalize
+from comfy.ldm.modules.diffusionmodules.model import (
+    ResnetBlock,
+    AttnBlock,
+    VideoConv3d,
+    Normalize,
+)
 import comfy.ops
 import comfy.ldm.models.autoencoder
+
 ops = comfy.ops.disable_weight_init
+
 
 class RMS_norm(nn.Module):
     def __init__(self, dim):
@@ -15,6 +22,7 @@ class RMS_norm(nn.Module):
 
     def forward(self, x):
         return F.normalize(x, dim=1) * self.scale * self.gamma
+
 
 class DnSmpl(nn.Module):
     def __init__(self, ic, oc, tds=True, refiner_vae=True, op=VideoConv3d):
@@ -149,9 +157,20 @@ class UpSmpl(nn.Module):
 
         return h + sc
 
+
 class Encoder(nn.Module):
-    def __init__(self, in_channels, z_channels, block_out_channels, num_res_blocks,
-                 ffactor_spatial, ffactor_temporal, downsample_match_channel=True, refiner_vae=True, **_):
+    def __init__(
+        self,
+        in_channels,
+        z_channels,
+        block_out_channels,
+        num_res_blocks,
+        ffactor_spatial,
+        ffactor_temporal,
+        downsample_match_channel=True,
+        refiner_vae=True,
+        **_,
+    ):
         super().__init__()
         self.z_channels = z_channels
         self.block_out_channels = block_out_channels
@@ -175,22 +194,51 @@ class Encoder(nn.Module):
 
         for i, tgt in enumerate(block_out_channels):
             stage = nn.Module()
-            stage.block = nn.ModuleList([ResnetBlock(in_channels=ch if j == 0 else tgt,
-                                                     out_channels=tgt,
-                                                     temb_channels=0,
-                                                     conv_op=conv_op, norm_op=norm_op)
-                                        for j in range(num_res_blocks)])
+            stage.block = nn.ModuleList(
+                [
+                    ResnetBlock(
+                        in_channels=ch if j == 0 else tgt,
+                        out_channels=tgt,
+                        temb_channels=0,
+                        conv_op=conv_op,
+                        norm_op=norm_op,
+                    )
+                    for j in range(num_res_blocks)
+                ]
+            )
             ch = tgt
             if i < depth:
-                nxt = block_out_channels[i + 1] if i + 1 < len(block_out_channels) and downsample_match_channel else ch
-                stage.downsample = DnSmpl(ch, nxt, tds=i >= depth_temporal, refiner_vae=self.refiner_vae, op=conv_op)
+                nxt = (
+                    block_out_channels[i + 1]
+                    if i + 1 < len(block_out_channels) and downsample_match_channel
+                    else ch
+                )
+                stage.downsample = DnSmpl(
+                    ch,
+                    nxt,
+                    tds=i >= depth_temporal,
+                    refiner_vae=self.refiner_vae,
+                    op=conv_op,
+                )
                 ch = nxt
             self.down.append(stage)
 
         self.mid = nn.Module()
-        self.mid.block_1 = ResnetBlock(in_channels=ch, out_channels=ch, temb_channels=0, conv_op=conv_op, norm_op=norm_op)
+        self.mid.block_1 = ResnetBlock(
+            in_channels=ch,
+            out_channels=ch,
+            temb_channels=0,
+            conv_op=conv_op,
+            norm_op=norm_op,
+        )
         self.mid.attn_1 = AttnBlock(ch, conv_op=ops.Conv3d, norm_op=norm_op)
-        self.mid.block_2 = ResnetBlock(in_channels=ch, out_channels=ch, temb_channels=0, conv_op=conv_op, norm_op=norm_op)
+        self.mid.block_2 = ResnetBlock(
+            in_channels=ch,
+            out_channels=ch,
+            temb_channels=0,
+            conv_op=conv_op,
+            norm_op=norm_op,
+        )
 
         self.norm_out = norm_op(ch)
         self.conv_out = conv_op(ch, z_channels << 1, 3, 1, 1)
@@ -206,7 +254,7 @@ class Encoder(nn.Module):
         for stage in self.down:
             for blk in stage.block:
                 x = blk(x)
-            if hasattr(stage, 'downsample'):
+            if hasattr(stage, "downsample"):
                 x = stage.downsample(x)
 
         x = self.mid.block_2(self.mid.attn_1(self.mid.block_1(x)))
@@ -228,9 +276,20 @@ class Encoder(nn.Module):
 
         return out
 
+
 class Decoder(nn.Module):
-    def __init__(self, z_channels, out_channels, block_out_channels, num_res_blocks,
-                 ffactor_spatial, ffactor_temporal, upsample_match_channel=True, refiner_vae=True, **_):
+    def __init__(
+        self,
+        z_channels,
+        out_channels,
+        block_out_channels,
+        num_res_blocks,
+        ffactor_spatial,
+        ffactor_temporal,
+        upsample_match_channel=True,
+        refiner_vae=True,
+        **_,
+    ):
         super().__init__()
         block_out_channels = block_out_channels[::-1]
         self.z_channels = z_channels
@@ -249,9 +308,21 @@ class Decoder(nn.Module):
         self.conv_in = conv_op(z_channels, ch, kernel_size=3, stride=1, padding=1)
 
         self.mid = nn.Module()
-        self.mid.block_1 = ResnetBlock(in_channels=ch, out_channels=ch, temb_channels=0, conv_op=conv_op, norm_op=norm_op)
+        self.mid.block_1 = ResnetBlock(
+            in_channels=ch,
+            out_channels=ch,
+            temb_channels=0,
+            conv_op=conv_op,
+            norm_op=norm_op,
+        )
         self.mid.attn_1 = AttnBlock(ch, conv_op=ops.Conv3d, norm_op=norm_op)
-        self.mid.block_2 = ResnetBlock(in_channels=ch, out_channels=ch, temb_channels=0, conv_op=conv_op, norm_op=norm_op)
+        self.mid.block_2 = ResnetBlock(
+            in_channels=ch,
+            out_channels=ch,
+            temb_channels=0,
+            conv_op=conv_op,
+            norm_op=norm_op,
+        )
 
         self.up = nn.ModuleList()
         depth = (ffactor_spatial >> 1).bit_length()
@@ -259,15 +330,32 @@ class Decoder(nn.Module):
 
         for i, tgt in enumerate(block_out_channels):
             stage = nn.Module()
-            stage.block = nn.ModuleList([ResnetBlock(in_channels=ch if j == 0 else tgt,
-                                                     out_channels=tgt,
-                                                     temb_channels=0,
-                                                     conv_op=conv_op, norm_op=norm_op)
-                                        for j in range(num_res_blocks + 1)])
+            stage.block = nn.ModuleList(
+                [
+                    ResnetBlock(
+                        in_channels=ch if j == 0 else tgt,
+                        out_channels=tgt,
+                        temb_channels=0,
+                        conv_op=conv_op,
+                        norm_op=norm_op,
+                    )
+                    for j in range(num_res_blocks + 1)
+                ]
+            )
             ch = tgt
             if i < depth:
-                nxt = block_out_channels[i + 1] if i + 1 < len(block_out_channels) and upsample_match_channel else ch
-                stage.upsample = UpSmpl(ch, nxt, tus=i < depth_temporal, refiner_vae=self.refiner_vae, op=conv_op)
+                nxt = (
+                    block_out_channels[i + 1]
+                    if i + 1 < len(block_out_channels) and upsample_match_channel
+                    else ch
+                )
+                stage.upsample = UpSmpl(
+                    ch,
+                    nxt,
+                    tus=i < depth_temporal,
+                    refiner_vae=self.refiner_vae,
+                    op=conv_op,
+                )
                 ch = nxt
             self.up.append(stage)
 
@@ -283,13 +371,15 @@ class Decoder(nn.Module):
             z = z.permute(0, 2, 1, 3, 4)
             z = z[:, :, 1:]
 
-        x = self.conv_in(z) + z.repeat_interleave(self.block_out_channels[0] // self.z_channels, 1)
+        x = self.conv_in(z) + z.repeat_interleave(
+            self.block_out_channels[0] // self.z_channels, 1
+        )
         x = self.mid.block_2(self.mid.attn_1(self.mid.block_1(x)))
 
         for stage in self.up:
             for blk in stage.block:
                 x = blk(x)
-            if hasattr(stage, 'upsample'):
+            if hasattr(stage, "upsample"):
                 x = stage.upsample(x)
 
         out = self.conv_out(F.silu(self.norm_out(x)))

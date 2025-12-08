@@ -56,7 +56,17 @@ def process_cond_list(d, prefix=""):
 
 
 class TrainSampler(comfy.samplers.Sampler):
-    def __init__(self, loss_fn, optimizer, loss_callback=None, batch_size=1, grad_acc=1, total_steps=1, seed=0, training_dtype=torch.bfloat16):
+    def __init__(
+        self,
+        loss_fn,
+        optimizer,
+        loss_callback=None,
+        batch_size=1,
+        grad_acc=1,
+        total_steps=1,
+        seed=0,
+        training_dtype=torch.bfloat16,
+    ):
         self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.loss_callback = loss_callback
@@ -66,41 +76,60 @@ class TrainSampler(comfy.samplers.Sampler):
         self.seed = seed
         self.training_dtype = training_dtype
 
-    def sample(self, model_wrap, sigmas, extra_args, callback, noise, latent_image=None, denoise_mask=None, disable_pbar=False):
+    def sample(
+        self,
+        model_wrap,
+        sigmas,
+        extra_args,
+        callback,
+        noise,
+        latent_image=None,
+        denoise_mask=None,
+        disable_pbar=False,
+    ):
         model_wrap.conds = process_cond_list(model_wrap.conds)
         cond = model_wrap.conds["positive"]
         dataset_size = sigmas.size(0)
         torch.cuda.empty_cache()
-        for i in (pbar:=tqdm.trange(self.total_steps, desc="Training LoRA", smoothing=0.01, disable=not comfy.utils.PROGRESS_BAR_ENABLED)):
-            noisegen = comfy_extras.nodes_custom_sampler.Noise_RandomNoise(self.seed + i * 1000)
-            indicies = torch.randperm(dataset_size)[:self.batch_size].tolist()
+        for i in (
+            pbar := tqdm.trange(
+                self.total_steps,
+                desc="Training LoRA",
+                smoothing=0.01,
+                disable=not comfy.utils.PROGRESS_BAR_ENABLED,
+            )
+        ):
+            noisegen = comfy_extras.nodes_custom_sampler.Noise_RandomNoise(
+                self.seed + i * 1000
+            )
+            indicies = torch.randperm(dataset_size)[: self.batch_size].tolist()
 
             batch_latent = torch.stack([latent_image[i] for i in indicies])
-            batch_noise = noisegen.generate_noise({"samples": batch_latent}).to(batch_latent.device)
+            batch_noise = noisegen.generate_noise({"samples": batch_latent}).to(
+                batch_latent.device
+            )
             batch_sigmas = [
                 model_wrap.inner_model.model_sampling.percent_to_sigma(
                     torch.rand((1,)).item()
-                ) for _ in range(min(self.batch_size, dataset_size))
+                )
+                for _ in range(min(self.batch_size, dataset_size))
             ]
             batch_sigmas = torch.tensor(batch_sigmas).to(batch_latent.device)
 
             xt = model_wrap.inner_model.model_sampling.noise_scaling(
-                batch_sigmas,
-                batch_noise,
-                batch_latent,
-                False
+                batch_sigmas, batch_noise, batch_latent, False
             )
             x0 = model_wrap.inner_model.model_sampling.noise_scaling(
                 torch.zeros_like(batch_sigmas),
                 torch.zeros_like(batch_noise),
                 batch_latent,
-                False
+                False,
             )
 
-            model_wrap.conds["positive"] = [
-                cond[i] for i in indicies
-            ]
-            batch_extra_args = make_batch_extra_option_dict(extra_args, indicies, full_size=dataset_size)
+            model_wrap.conds["positive"] = [cond[i] for i in indicies]
+            batch_extra_args = make_batch_extra_option_dict(
+                extra_args, indicies, full_size=dataset_size
+            )
 
             with torch.autocast(xt.device.type, dtype=self.training_dtype):
                 x0_pred = model_wrap(xt, batch_sigmas, **batch_extra_args)
@@ -110,7 +139,7 @@ class TrainSampler(comfy.samplers.Sampler):
                 self.loss_callback(loss.item())
             pbar.set_postfix({"loss": f"{loss.item():.4f}"})
 
-            if (i+1) % self.grad_acc == 0:
+            if (i + 1) % self.grad_acc == 0:
                 self.optimizer.step()
                 self.optimizer.zero_grad()
         torch.cuda.empty_cache()
@@ -134,7 +163,9 @@ class BiasDiff(torch.nn.Module):
         return self.passive_memory_usage()
 
 
-def load_and_process_images(image_files, input_dir, resize_method="None", w=None, h=None):
+def load_and_process_images(
+    image_files, input_dir, resize_method="None", w=None, h=None
+):
     """Utility function to load and process a list of images.
 
     Args:
@@ -190,7 +221,20 @@ class LoadImageSetNode:
                     [
                         f
                         for f in os.listdir(folder_paths.get_input_directory())
-                        if f.endswith((".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".jpe", ".apng", ".tif", ".tiff"))
+                        if f.endswith(
+                            (
+                                ".png",
+                                ".jpg",
+                                ".jpeg",
+                                ".webp",
+                                ".bmp",
+                                ".gif",
+                                ".jpe",
+                                ".apng",
+                                ".tif",
+                                ".tiff",
+                            )
+                        )
                     ],
                     {"image_upload": True, "allow_batch": True},
                 )
@@ -221,7 +265,18 @@ class LoadImageSetNode:
 
     def load_images(self, input_files, resize_method):
         input_dir = folder_paths.get_input_directory()
-        valid_extensions = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".jpe", ".apng", ".tif", ".tiff"]
+        valid_extensions = [
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".webp",
+            ".bmp",
+            ".gif",
+            ".jpe",
+            ".apng",
+            ".tif",
+            ".tiff",
+        ]
         image_files = [
             f
             for f in input_files
@@ -236,7 +291,10 @@ class LoadImageSetFromFolderNode:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "folder": (folder_paths.get_input_subfolders(), {"tooltip": "The folder to load images from."})
+                "folder": (
+                    folder_paths.get_input_subfolders(),
+                    {"tooltip": "The folder to load images from."},
+                )
             },
             "optional": {
                 "resize_method": (
@@ -260,7 +318,9 @@ class LoadImageSetFromFolderNode:
             for f in os.listdir(sub_input_dir)
             if any(f.lower().endswith(ext) for ext in valid_extensions)
         ]
-        output_tensor = load_and_process_images(image_files, sub_input_dir, resize_method)
+        output_tensor = load_and_process_images(
+            image_files, sub_input_dir, resize_method
+        )
         return (output_tensor,)
 
 
@@ -269,8 +329,14 @@ class LoadImageTextSetFromFolderNode:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "folder": (folder_paths.get_input_subfolders(), {"tooltip": "The folder to load images from."}),
-                "clip": (IO.CLIP, {"tooltip": "The CLIP model used for encoding the text."}),
+                "folder": (
+                    folder_paths.get_input_subfolders(),
+                    {"tooltip": "The folder to load images from."},
+                ),
+                "clip": (
+                    IO.CLIP,
+                    {"tooltip": "The CLIP model used for encoding the text."},
+                ),
             },
             "optional": {
                 "resize_method": (
@@ -296,11 +362,14 @@ class LoadImageTextSetFromFolderNode:
                         "step": 1,
                         "tooltip": "The height to resize the images to. -1 means use the original height.",
                     },
-                )
+                ),
             },
         }
 
-    RETURN_TYPES = ("IMAGE", IO.CONDITIONING,)
+    RETURN_TYPES = (
+        "IMAGE",
+        IO.CONDITIONING,
+    )
     FUNCTION = "load_images"
     CATEGORY = "loaders"
     EXPERIMENTAL = True
@@ -308,7 +377,9 @@ class LoadImageTextSetFromFolderNode:
 
     def load_images(self, folder, clip, resize_method, width=None, height=None):
         if clip is None:
-            raise RuntimeError("ERROR: clip input is invalid: None\n\nIf the clip is from a checkpoint loader node your checkpoint does not contain a valid clip or text encoder model.")
+            raise RuntimeError(
+                "ERROR: clip input is invalid: None\n\nIf the clip is from a checkpoint loader node your checkpoint does not contain a valid clip or text encoder model."
+            )
 
         logging.info(f"Loading images from folder: {folder}")
 
@@ -325,13 +396,17 @@ class LoadImageTextSetFromFolderNode:
                 repeat = 1
                 if item.split("_")[0].isdigit():
                     repeat = int(item.split("_")[0])
-                image_files.extend([
-                    os.path.join(path, f) for f in os.listdir(path) if any(f.lower().endswith(ext) for ext in valid_extensions)
-                ] * repeat)
+                image_files.extend(
+                    [
+                        os.path.join(path, f)
+                        for f in os.listdir(path)
+                        if any(f.lower().endswith(ext) for ext in valid_extensions)
+                    ]
+                    * repeat
+                )
 
         caption_file_path = [
-            f.replace(os.path.splitext(f)[1], ".txt")
-            for f in image_files
+            f.replace(os.path.splitext(f)[1], ".txt") for f in image_files
         ]
         captions = []
         for caption_file in caption_file_path:
@@ -345,7 +420,9 @@ class LoadImageTextSetFromFolderNode:
 
         width = width if width != -1 else None
         height = height if height != -1 else None
-        output_tensor = load_and_process_images(image_files, sub_input_dir, resize_method, width, height)
+        output_tensor = load_and_process_images(
+            image_files, sub_input_dir, resize_method, width, height
+        )
 
         logging.info(f"Loaded {len(output_tensor)} images from {sub_input_dir}.")
 
@@ -379,10 +456,14 @@ def draw_loss_graph(loss_map, steps):
     return img
 
 
-def find_all_highest_child_module_with_forward(model: torch.nn.Module, result = None, name = None):
+def find_all_highest_child_module_with_forward(
+    model: torch.nn.Module, result=None, name=None
+):
     if result is None:
         result = []
-    elif hasattr(model, "forward") and not isinstance(model, (torch.nn.ModuleList, torch.nn.Sequential, torch.nn.ModuleDict)):
+    elif hasattr(model, "forward") and not isinstance(
+        model, (torch.nn.ModuleList, torch.nn.Sequential, torch.nn.ModuleDict)
+    ):
         result.append(model)
         logging.debug(f"Found module with forward: {name} ({model.__class__.__name__})")
         return result
@@ -396,12 +477,13 @@ def patch(m):
     if not hasattr(m, "forward"):
         return
     org_forward = m.forward
+
     def fwd(args, kwargs):
         return org_forward(*args, **kwargs)
+
     def checkpointing_fwd(*args, **kwargs):
-        return torch.utils.checkpoint.checkpoint(
-            fwd, args, kwargs, use_reentrant=False
-        )
+        return torch.utils.checkpoint.checkpoint(fwd, args, kwargs, use_reentrant=False)
+
     m.org_forward = org_forward
     m.forward = checkpointing_fwd
 
@@ -446,7 +528,7 @@ class TrainLoraNode:
                         "max": 1024,
                         "step": 1,
                         "tooltip": "The number of gradient accumulation steps to use for training.",
-                    }
+                    },
                 ),
                 "steps": (
                     IO.INT,
@@ -500,7 +582,7 @@ class TrainLoraNode:
                     },
                 ),
                 "training_dtype": (
-                    ["bf16",  "fp32"],
+                    ["bf16", "fp32"],
                     {"default": "bf16", "tooltip": "The dtype to use for training."},
                 ),
                 "lora_dtype": (
@@ -509,14 +591,17 @@ class TrainLoraNode:
                 ),
                 "algorithm": (
                     list(adapter_maps.keys()),
-                    {"default": list(adapter_maps.keys())[0], "tooltip": "The algorithm to use for training."},
+                    {
+                        "default": list(adapter_maps.keys())[0],
+                        "tooltip": "The algorithm to use for training.",
+                    },
                 ),
                 "gradient_checkpointing": (
                     IO.BOOLEAN,
                     {
                         "default": True,
                         "tooltip": "Use gradient checkpointing for training.",
-                    }
+                    },
                 ),
                 "existing_lora": (
                     folder_paths.get_filename_list("loras") + ["[None]"],
@@ -591,9 +676,7 @@ class TrainLoraNode:
                         shape = m.weight.shape
                         if len(shape) >= 2:
                             alpha = float(existing_weights.get(f"{key}.alpha", 1.0))
-                            dora_scale = existing_weights.get(
-                                f"{key}.dora_scale", None
-                            )
+                            dora_scale = existing_weights.get(f"{key}.dora_scale", None)
                             for adapter_cls in adapters:
                                 existing_adapter = adapter_cls.load(
                                     n, existing_weights, alpha, dora_scale
@@ -605,7 +688,9 @@ class TrainLoraNode:
                                 adapter_cls = adapter_maps[algorithm]
 
                             if existing_adapter is not None:
-                                train_adapter = existing_adapter.to_train().to(lora_dtype)
+                                train_adapter = existing_adapter.to_train().to(
+                                    lora_dtype
+                                )
                             else:
                                 # Use LoRA with alpha=1.0 by default
                                 train_adapter = adapter_cls.create_train(
@@ -629,7 +714,9 @@ class TrainLoraNode:
                     if hasattr(m, "bias") and m.bias is not None:
                         key = "{}.bias".format(n)
                         bias = torch.nn.Parameter(
-                            torch.zeros(m.bias.shape, dtype=lora_dtype, requires_grad=True)
+                            torch.zeros(
+                                m.bias.shape, dtype=lora_dtype, requires_grad=True
+                            )
                         )
                         bias_module = BiasDiff(bias)
                         lora_sd["{}.diff_b".format(n)] = bias
@@ -657,24 +744,30 @@ class TrainLoraNode:
 
             # setup models
             if gradient_checkpointing:
-                for m in find_all_highest_child_module_with_forward(mp.model.diffusion_model):
+                for m in find_all_highest_child_module_with_forward(
+                    mp.model.diffusion_model
+                ):
                     patch(m)
             mp.model.requires_grad_(False)
-            comfy.model_management.load_models_gpu([mp], memory_required=1e20, force_full_load=True)
+            comfy.model_management.load_models_gpu(
+                [mp], memory_required=1e20, force_full_load=True
+            )
 
             # Setup sampler and guider like in test script
             loss_map = {"loss": []}
+
             def loss_callback(loss):
                 loss_map["loss"].append(loss)
+
             train_sampler = TrainSampler(
                 criterion,
                 optimizer,
                 loss_callback=loss_callback,
                 batch_size=batch_size,
                 grad_acc=grad_accumulation_steps,
-                total_steps=steps*grad_accumulation_steps,
+                total_steps=steps * grad_accumulation_steps,
                 seed=seed,
-                training_dtype=dtype
+                training_dtype=dtype,
             )
             guider = comfy_extras.nodes_custom_sampler.Guider_Basic(mp)
             guider.set_conds(positive)  # Set conditioning from input
@@ -689,7 +782,7 @@ class TrainLoraNode:
                     latents,
                     train_sampler,
                     sigmas,
-                    seed=noise.seed
+                    seed=noise.seed,
                 )
             finally:
                 for m in mp.model.modules():
@@ -713,9 +806,24 @@ class LoraModelLoader:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "model": ("MODEL", {"tooltip": "The diffusion model the LoRA will be applied to."}),
-                "lora": (IO.LORA_MODEL, {"tooltip": "The LoRA model to apply to the diffusion model."}),
-                "strength_model": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.01, "tooltip": "How strongly to modify the diffusion model. This value can be negative."}),
+                "model": (
+                    "MODEL",
+                    {"tooltip": "The diffusion model the LoRA will be applied to."},
+                ),
+                "lora": (
+                    IO.LORA_MODEL,
+                    {"tooltip": "The LoRA model to apply to the diffusion model."},
+                ),
+                "strength_model": (
+                    "FLOAT",
+                    {
+                        "default": 1.0,
+                        "min": -100.0,
+                        "max": 100.0,
+                        "step": 0.01,
+                        "tooltip": "How strongly to modify the diffusion model. This value can be negative.",
+                    },
+                ),
             }
         }
 
@@ -729,10 +837,12 @@ class LoraModelLoader:
 
     def load_lora_model(self, model, lora, strength_model):
         if strength_model == 0:
-            return (model, )
+            return (model,)
 
-        model_lora, _ = comfy.sd.load_lora_for_models(model, None, lora, strength_model, 0)
-        return (model_lora, )
+        model_lora, _ = comfy.sd.load_lora_for_models(
+            model, None, lora, strength_model, 0
+        )
+        return (model_lora,)
 
 
 class SaveLoRA:
@@ -775,7 +885,9 @@ class SaveLoRA:
     OUTPUT_NODE = True
 
     def save(self, lora, prefix, steps=None):
-        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(prefix, self.output_dir)
+        full_output_folder, filename, counter, subfolder, filename_prefix = (
+            folder_paths.get_save_image_path(prefix, self.output_dir)
+        )
         if steps is None:
             output_checkpoint = f"{filename}_{counter:05}_.safetensors"
         else:

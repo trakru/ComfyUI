@@ -56,13 +56,13 @@ class MyLayout(QuantizedLayout):
         qdata = ...
         params = {'scale': ..., 'orig_dtype': tensor.dtype}
         return qdata, params
-    
+
     @staticmethod
     def dequantize(qdata, scale, orig_dtype, **kwargs):
         return qdata.to(orig_dtype) * scale
 ```
 
-To then run operations using these QuantizedTensors we use two registry systems to define supported operations. 
+To then run operations using these QuantizedTensors we use two registry systems to define supported operations.
 The first is a **generic registry** that handles operations common to all quantized formats (e.g., `.to()`, `.clone()`, `.reshape()`).
 
 The second registry is layout-specific and allows to implement fast-paths like nn.Linear.
@@ -94,7 +94,7 @@ class MixedPrecisionOps(disable_weight_init):
 
 The custom `Linear._load_from_state_dict()` method inspects each layer during model loading:
 - If the layer name is **not** in `_layer_quant_config`: load weight as regular tensor in `_compute_dtype`
-- If the layer name **is** in `_layer_quant_config`: 
+- If the layer name **is** in `_layer_quant_config`:
   - Load weight as `QuantizedTensor` with the specified layout (e.g., `TensorCoreFP8Layout`)
   - Load associated quantization parameters (scales, block_size, etc.)
 
@@ -131,7 +131,7 @@ You can find the defined formats in `comfy/quant_ops.py` (QUANT_ALGOS).
 
 The metadata stored alongside the checkpoint contains:
 - **format_version**: String to define a version of the standard
-- **layers**: A dictionary mapping layer names to their quantization format. The format string maps to the definitions found in `QUANT_ALGOS`. 
+- **layers**: A dictionary mapping layer names to their quantization format. The format string maps to the definitions found in `QUANT_ALGOS`.
 
 Example:
 ```json

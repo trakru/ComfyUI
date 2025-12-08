@@ -10,6 +10,7 @@ from comfy.ldm.util import get_obj_from_str, instantiate_from_config
 from comfy.ldm.modules.ema import LitEma
 import comfy.ops
 
+
 class DiagonalGaussianRegularizer(torch.nn.Module):
     def __init__(self, sample: bool = False):
         super().__init__()
@@ -26,12 +27,14 @@ class DiagonalGaussianRegularizer(torch.nn.Module):
             z = posterior.mode()
         return z, None
 
+
 class EmptyRegularizer(torch.nn.Module):
     def __init__(self):
         super().__init__()
 
     def forward(self, z: torch.Tensor) -> Tuple[torch.Tensor, dict]:
         return z, None
+
 
 class AbstractAutoencoder(torch.nn.Module):
     """
@@ -116,9 +119,7 @@ class AutoencodingEngine(AbstractAutoencoder):
 
         self.encoder: torch.nn.Module = instantiate_from_config(encoder_config)
         self.decoder: torch.nn.Module = instantiate_from_config(decoder_config)
-        self.regularization = instantiate_from_config(
-            regularizer_config
-        )
+        self.regularization = instantiate_from_config(regularizer_config)
 
     def get_last_layer(self):
         return self.decoder.get_last_layer()
@@ -229,9 +230,7 @@ class AutoencoderKL(AutoencodingEngineLegacy):
             kwargs["loss_config"] = kwargs.pop("lossconfig")
         super().__init__(
             regularizer_config={
-                "target": (
-                    "comfy.ldm.models.autoencoder.DiagonalGaussianRegularizer"
-                )
+                "target": ("comfy.ldm.models.autoencoder.DiagonalGaussianRegularizer")
             },
             **kwargs,
         )

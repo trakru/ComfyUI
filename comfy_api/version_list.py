@@ -9,4 +9,3 @@ supported_versions: List[Type[ComfyAPIBase]] = [
     ComfyAPIAdapter_v0_0_2,
     ComfyAPIAdapter_v0_0_1,
 ]
-

@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
+# ruff: noqa: T201
 """Comprehensive ComfyUI setup verification script."""
 
 import sys
 import os
 from pathlib import Path
 
+
 def print_header(text):
     """Print a formatted header."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  {text}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
+
 
 def print_status(check_name, passed, message=""):
     """Print a status line for a check."""
@@ -21,6 +24,7 @@ def print_status(check_name, passed, message=""):
     print(f"{color}{status}{reset} {check_name}")
     if message:
         print(f"  {message}")
+
 
 def verify_comfyliterals():
     """Verify ComfyLiterals web extension is properly installed."""
@@ -36,18 +40,20 @@ def verify_comfyliterals():
 
     return True, f"Found {len(files)} files"
 
+
 def verify_opencv():
     """Verify opencv-contrib-python with guidedFilter."""
     try:
         import cv2
         from cv2 import ximgproc
 
-        if not hasattr(ximgproc, 'guidedFilter'):
+        if not hasattr(ximgproc, "guidedFilter"):
             return False, "guidedFilter not found in ximgproc"
 
         return True, f"OpenCV {cv2.__version__} with ximgproc.guidedFilter"
     except ImportError as e:
         return False, str(e)
+
 
 def verify_onnxruntime():
     """Verify onnxruntime-gpu with CUDA support."""
@@ -55,7 +61,7 @@ def verify_onnxruntime():
         import onnxruntime as ort
 
         providers = ort.get_available_providers()
-        has_cuda = 'CUDAExecutionProvider' in providers
+        has_cuda = "CUDAExecutionProvider" in providers
 
         if not has_cuda:
             return False, f"CUDA not available. Providers: {providers}"
@@ -64,25 +70,29 @@ def verify_onnxruntime():
     except ImportError as e:
         return False, str(e)
 
+
 def verify_environment():
     """Verify environment variables are set correctly."""
-    numexpr_threads = os.environ.get('NUMEXPR_MAX_THREADS', 'NOT SET')
+    numexpr_threads = os.environ.get("NUMEXPR_MAX_THREADS", "NOT SET")
 
-    if numexpr_threads == 'NOT SET':
+    if numexpr_threads == "NOT SET":
         return False, "NUMEXPR_MAX_THREADS not set (should be 32)"
 
-    if numexpr_threads != '32':
+    if numexpr_threads != "32":
         return False, f"NUMEXPR_MAX_THREADS={numexpr_threads} (should be 32)"
 
     return True, f"NUMEXPR_MAX_THREADS={numexpr_threads}"
+
 
 def verify_sageattention():
     """Verify sageattention (optional)."""
     try:
         import sageattention
+
         return True, f"Version {sageattention.__version__} (optional)"
     except ImportError:
         return False, "Not installed (optional - not required)"
+
 
 def main():
     """Run all verification checks."""
@@ -106,7 +116,7 @@ def main():
     print_header("Summary")
 
     required_checks = results[:4]  # First 4 are required
-    optional_checks = results[4:]   # Last is optional
+    _ = results[4:]  # Last is optional (unused but kept for clarity)
 
     required_passed = sum(required_checks)
     required_total = len(required_checks)
@@ -119,8 +129,11 @@ def main():
         return 0
     else:
         print("\n[FAIL] Some required components failed verification.")
-        print("  Please review the failures above and re-run the appropriate fix tasks.")
+        print(
+            "  Please review the failures above and re-run the appropriate fix tasks."
+        )
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

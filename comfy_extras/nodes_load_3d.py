@@ -9,9 +9,10 @@ from pathlib import Path
 
 
 def normalize_path(path):
-    return path.replace('\\', '/')
+    return path.replace("\\", "/")
 
-class Load3D():
+
+class Load3D:
     @classmethod
     def INPUT_TYPES(s):
         input_dir = os.path.join(folder_paths.get_input_directory(), "3d")
@@ -24,18 +25,36 @@ class Load3D():
         files = [
             normalize_path(str(file_path.relative_to(base_path)))
             for file_path in input_path.rglob("*")
-            if file_path.suffix.lower() in {'.gltf', '.glb', '.obj', '.fbx', '.stl'}
+            if file_path.suffix.lower() in {".gltf", ".glb", ".obj", ".fbx", ".stl"}
         ]
 
-        return {"required": {
-            "model_file": (sorted(files), {"file_upload": True}),
-            "image": ("LOAD_3D", {}),
-            "width": ("INT", {"default": 1024, "min": 1, "max": 4096, "step": 1}),
-            "height": ("INT", {"default": 1024, "min": 1, "max": 4096, "step": 1}),
-        }}
+        return {
+            "required": {
+                "model_file": (sorted(files), {"file_upload": True}),
+                "image": ("LOAD_3D", {}),
+                "width": ("INT", {"default": 1024, "min": 1, "max": 4096, "step": 1}),
+                "height": ("INT", {"default": 1024, "min": 1, "max": 4096, "step": 1}),
+            }
+        }
 
-    RETURN_TYPES = ("IMAGE", "MASK", "STRING", "IMAGE", "IMAGE", "LOAD3D_CAMERA", IO.VIDEO)
-    RETURN_NAMES = ("image", "mask", "mesh_path", "normal", "lineart", "camera_info", "recording_video")
+    RETURN_TYPES = (
+        "IMAGE",
+        "MASK",
+        "STRING",
+        "IMAGE",
+        "IMAGE",
+        "LOAD3D_CAMERA",
+        IO.VIDEO,
+    )
+    RETURN_NAMES = (
+        "image",
+        "mask",
+        "mesh_path",
+        "normal",
+        "lineart",
+        "camera_info",
+        "recording_video",
+    )
 
     FUNCTION = "process"
     EXPERIMENTAL = True
@@ -43,10 +62,10 @@ class Load3D():
     CATEGORY = "3d"
 
     def process(self, model_file, image, **kwargs):
-        image_path = folder_paths.get_annotated_filepath(image['image'])
-        mask_path = folder_paths.get_annotated_filepath(image['mask'])
-        normal_path = folder_paths.get_annotated_filepath(image['normal'])
-        lineart_path = folder_paths.get_annotated_filepath(image['lineart'])
+        image_path = folder_paths.get_annotated_filepath(image["image"])
+        mask_path = folder_paths.get_annotated_filepath(image["mask"])
+        normal_path = folder_paths.get_annotated_filepath(image["normal"])
+        lineart_path = folder_paths.get_annotated_filepath(image["lineart"])
 
         load_image_node = nodes.LoadImage()
         output_image, ignore_mask = load_image_node.load_image(image=image_path)
@@ -56,14 +75,25 @@ class Load3D():
 
         video = None
 
-        if image['recording'] != "":
-            recording_video_path = folder_paths.get_annotated_filepath(image['recording'])
+        if image["recording"] != "":
+            recording_video_path = folder_paths.get_annotated_filepath(
+                image["recording"]
+            )
 
             video = VideoFromFile(recording_video_path)
 
-        return output_image, output_mask, model_file, normal_image, lineart_image, image['camera_info'], video
+        return (
+            output_image,
+            output_mask,
+            model_file,
+            normal_image,
+            lineart_image,
+            image["camera_info"],
+            video,
+        )
 
-class Load3DAnimation():
+
+class Load3DAnimation:
     @classmethod
     def INPUT_TYPES(s):
         input_dir = os.path.join(folder_paths.get_input_directory(), "3d")
@@ -76,18 +106,27 @@ class Load3DAnimation():
         files = [
             normalize_path(str(file_path.relative_to(base_path)))
             for file_path in input_path.rglob("*")
-            if file_path.suffix.lower() in {'.gltf', '.glb', '.fbx'}
+            if file_path.suffix.lower() in {".gltf", ".glb", ".fbx"}
         ]
 
-        return {"required": {
-            "model_file": (sorted(files), {"file_upload": True}),
-            "image": ("LOAD_3D_ANIMATION", {}),
-            "width": ("INT", {"default": 1024, "min": 1, "max": 4096, "step": 1}),
-            "height": ("INT", {"default": 1024, "min": 1, "max": 4096, "step": 1}),
-        }}
+        return {
+            "required": {
+                "model_file": (sorted(files), {"file_upload": True}),
+                "image": ("LOAD_3D_ANIMATION", {}),
+                "width": ("INT", {"default": 1024, "min": 1, "max": 4096, "step": 1}),
+                "height": ("INT", {"default": 1024, "min": 1, "max": 4096, "step": 1}),
+            }
+        }
 
     RETURN_TYPES = ("IMAGE", "MASK", "STRING", "IMAGE", "LOAD3D_CAMERA", IO.VIDEO)
-    RETURN_NAMES = ("image", "mask", "mesh_path", "normal", "camera_info", "recording_video")
+    RETURN_NAMES = (
+        "image",
+        "mask",
+        "mesh_path",
+        "normal",
+        "camera_info",
+        "recording_video",
+    )
 
     FUNCTION = "process"
     EXPERIMENTAL = True
@@ -95,9 +134,9 @@ class Load3DAnimation():
     CATEGORY = "3d"
 
     def process(self, model_file, image, **kwargs):
-        image_path = folder_paths.get_annotated_filepath(image['image'])
-        mask_path = folder_paths.get_annotated_filepath(image['mask'])
-        normal_path = folder_paths.get_annotated_filepath(image['normal'])
+        image_path = folder_paths.get_annotated_filepath(image["image"])
+        mask_path = folder_paths.get_annotated_filepath(image["mask"])
+        normal_path = folder_paths.get_annotated_filepath(image["normal"])
 
         load_image_node = nodes.LoadImage()
         output_image, ignore_mask = load_image_node.load_image(image=image_path)
@@ -106,22 +145,32 @@ class Load3DAnimation():
 
         video = None
 
-        if image['recording'] != "":
-            recording_video_path = folder_paths.get_annotated_filepath(image['recording'])
+        if image["recording"] != "":
+            recording_video_path = folder_paths.get_annotated_filepath(
+                image["recording"]
+            )
 
             video = VideoFromFile(recording_video_path)
 
-        return output_image, output_mask, model_file, normal_image, image['camera_info'], video
+        return (
+            output_image,
+            output_mask,
+            model_file,
+            normal_image,
+            image["camera_info"],
+            video,
+        )
 
-class Preview3D():
+
+class Preview3D:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": {
-            "model_file": ("STRING", {"default": "", "multiline": False}),
-        },
-        "optional": {
-            "camera_info": ("LOAD3D_CAMERA", {})
-        }}
+        return {
+            "required": {
+                "model_file": ("STRING", {"default": "", "multiline": False}),
+            },
+            "optional": {"camera_info": ("LOAD3D_CAMERA", {})},
+        }
 
     OUTPUT_NODE = True
     RETURN_TYPES = ()
@@ -134,21 +183,18 @@ class Preview3D():
     def process(self, model_file, **kwargs):
         camera_info = kwargs.get("camera_info", None)
 
-        return {
-            "ui": {
-                "result": [model_file, camera_info]
-            }
-        }
+        return {"ui": {"result": [model_file, camera_info]}}
 
-class Preview3DAnimation():
+
+class Preview3DAnimation:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": {
-            "model_file": ("STRING", {"default": "", "multiline": False}),
-        },
-        "optional": {
-            "camera_info": ("LOAD3D_CAMERA", {})
-        }}
+        return {
+            "required": {
+                "model_file": ("STRING", {"default": "", "multiline": False}),
+            },
+            "optional": {"camera_info": ("LOAD3D_CAMERA", {})},
+        }
 
     OUTPUT_NODE = True
     RETURN_TYPES = ()
@@ -161,22 +207,19 @@ class Preview3DAnimation():
     def process(self, model_file, **kwargs):
         camera_info = kwargs.get("camera_info", None)
 
-        return {
-            "ui": {
-                "result": [model_file, camera_info]
-            }
-        }
+        return {"ui": {"result": [model_file, camera_info]}}
+
 
 NODE_CLASS_MAPPINGS = {
     "Load3D": Load3D,
     "Load3DAnimation": Load3DAnimation,
     "Preview3D": Preview3D,
-    "Preview3DAnimation": Preview3DAnimation
+    "Preview3DAnimation": Preview3DAnimation,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Load3D": "Load 3D",
     "Load3DAnimation": "Load 3D - Animation",
     "Preview3D": "Preview 3D",
-    "Preview3DAnimation": "Preview 3D - Animation"
+    "Preview3DAnimation": "Preview 3D - Animation",
 }

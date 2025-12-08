@@ -337,7 +337,9 @@ async def image_result_to_node_output(
     if len(images) == 1:
         return await download_url_to_image_tensor(str(images[0].url))
     else:
-        return torch.cat([await download_url_to_image_tensor(str(image.url)) for image in images])
+        return torch.cat(
+            [await download_url_to_image_tensor(str(image.url)) for image in images]
+        )
 
 
 async def execute_text2video(
@@ -376,12 +378,18 @@ async def execute_text2video(
         ApiEndpoint(path=f"{PATH_TEXT_TO_VIDEO}/{task_id}"),
         response_model=KlingText2VideoResponse,
         estimated_duration=AVERAGE_DURATION_T2V,
-        status_extractor=lambda r: (r.data.task_status.value if r.data and r.data.task_status else None),
+        status_extractor=lambda r: (
+            r.data.task_status.value if r.data and r.data.task_status else None
+        ),
     )
     validate_video_result_response(final_response)
 
     video = get_video_from_response(final_response)
-    return IO.NodeOutput(await download_url_to_video_output(str(video.url)), str(video.id), str(video.duration))
+    return IO.NodeOutput(
+        await download_url_to_video_output(str(video.url)),
+        str(video.id),
+        str(video.duration),
+    )
 
 
 async def execute_image2video(
@@ -404,8 +412,13 @@ async def execute_image2video(
         # Camera control type for image 2 video is always `simple`
         camera_control.type = KlingCameraControlType.simple
 
-    if model_mode == "std" and model_name == KlingVideoGenModelName.kling_v2_5_turbo.value:
-        model_mode = "pro"  # October 5: currently "std" mode is not supported for this model
+    if (
+        model_mode == "std"
+        and model_name == KlingVideoGenModelName.kling_v2_5_turbo.value
+    ):
+        model_mode = (
+            "pro"  # October 5: currently "std" mode is not supported for this model
+        )
 
     task_creation_response = await sync_op(
         cls,
@@ -415,9 +428,7 @@ async def execute_image2video(
             model_name=KlingVideoGenModelName(model_name),
             image=tensor_to_base64_string(start_frame),
             image_tail=(
-                tensor_to_base64_string(end_frame)
-                if end_frame is not None
-                else None
+                tensor_to_base64_string(end_frame) if end_frame is not None else None
             ),
             prompt=prompt,
             negative_prompt=negative_prompt if negative_prompt else None,
@@ -432,16 +443,22 @@ async def execute_image2video(
     task_id = task_creation_response.data.task_id
 
     final_response = await poll_op(
-            cls,
-            ApiEndpoint(path=f"{PATH_IMAGE_TO_VIDEO}/{task_id}"),
-            response_model=KlingImage2VideoResponse,
-            estimated_duration=AVERAGE_DURATION_I2V,
-            status_extractor=lambda r: (r.data.task_status.value if r.data and r.data.task_status else None),
-        )
+        cls,
+        ApiEndpoint(path=f"{PATH_IMAGE_TO_VIDEO}/{task_id}"),
+        response_model=KlingImage2VideoResponse,
+        estimated_duration=AVERAGE_DURATION_I2V,
+        status_extractor=lambda r: (
+            r.data.task_status.value if r.data and r.data.task_status else None
+        ),
+    )
     validate_video_result_response(final_response)
 
     video = get_video_from_response(final_response)
-    return IO.NodeOutput(await download_url_to_video_output(str(video.url)), str(video.id), str(video.duration))
+    return IO.NodeOutput(
+        await download_url_to_video_output(str(video.url)),
+        str(video.id),
+        str(video.duration),
+    )
 
 
 async def execute_video_effect(
@@ -489,12 +506,18 @@ async def execute_video_effect(
         ApiEndpoint(path=f"{PATH_VIDEO_EFFECTS}/{task_id}"),
         response_model=KlingVideoEffectsResponse,
         estimated_duration=AVERAGE_DURATION_VIDEO_EFFECTS,
-        status_extractor=lambda r: (r.data.task_status.value if r.data and r.data.task_status else None),
+        status_extractor=lambda r: (
+            r.data.task_status.value if r.data and r.data.task_status else None
+        ),
     )
     validate_video_result_response(final_response)
 
     video = get_video_from_response(final_response)
-    return await download_url_to_video_output(str(video.url)), str(video.id), str(video.duration)
+    return (
+        await download_url_to_video_output(str(video.url)),
+        str(video.id),
+        str(video.duration),
+    )
 
 
 async def execute_lipsync(
@@ -549,12 +572,18 @@ async def execute_lipsync(
         ApiEndpoint(path=f"{PATH_LIP_SYNC}/{task_id}"),
         response_model=KlingLipSyncResponse,
         estimated_duration=AVERAGE_DURATION_LIP_SYNC,
-        status_extractor=lambda r: (r.data.task_status.value if r.data and r.data.task_status else None),
+        status_extractor=lambda r: (
+            r.data.task_status.value if r.data and r.data.task_status else None
+        ),
     )
     validate_video_result_response(final_response)
 
     video = get_video_from_response(final_response)
-    return IO.NodeOutput(await download_url_to_video_output(str(video.url)), str(video.id), str(video.duration))
+    return IO.NodeOutput(
+        await download_url_to_video_output(str(video.url)),
+        str(video.id),
+        str(video.duration),
+    )
 
 
 class KlingCameraControls(IO.ComfyNode):
@@ -688,8 +717,12 @@ class KlingTextToVideoNode(IO.ComfyNode):
             category="api node/video/Kling",
             description="Kling Text to Video Node",
             inputs=[
-                IO.String.Input("prompt", multiline=True, tooltip="Positive text prompt"),
-                IO.String.Input("negative_prompt", multiline=True, tooltip="Negative text prompt"),
+                IO.String.Input(
+                    "prompt", multiline=True, tooltip="Positive text prompt"
+                ),
+                IO.String.Input(
+                    "negative_prompt", multiline=True, tooltip="Negative text prompt"
+                ),
                 IO.Float.Input("cfg_scale", default=1.0, min=0.0, max=1.0),
                 IO.Combo.Input(
                     "aspect_ratio",
@@ -752,8 +785,12 @@ class KlingCameraControlT2VNode(IO.ComfyNode):
             category="api node/video/Kling",
             description="Transform text into cinematic videos with professional camera movements that simulate real-world cinematography. Control virtual camera actions including zoom, rotation, pan, tilt, and first-person view, while maintaining focus on your original text.",
             inputs=[
-                IO.String.Input("prompt", multiline=True, tooltip="Positive text prompt"),
-                IO.String.Input("negative_prompt", multiline=True, tooltip="Negative text prompt"),
+                IO.String.Input(
+                    "prompt", multiline=True, tooltip="Positive text prompt"
+                ),
+                IO.String.Input(
+                    "negative_prompt", multiline=True, tooltip="Negative text prompt"
+                ),
                 IO.Float.Input("cfg_scale", default=0.75, min=0.0, max=1.0),
                 IO.Combo.Input(
                     "aspect_ratio",
@@ -811,22 +848,35 @@ class KlingImage2VideoNode(IO.ComfyNode):
             category="api node/video/Kling",
             description="Kling Image to Video Node",
             inputs=[
-                IO.Image.Input("start_frame", tooltip="The reference image used to generate the video."),
-                IO.String.Input("prompt", multiline=True, tooltip="Positive text prompt"),
-                IO.String.Input("negative_prompt", multiline=True, tooltip="Negative text prompt"),
+                IO.Image.Input(
+                    "start_frame",
+                    tooltip="The reference image used to generate the video.",
+                ),
+                IO.String.Input(
+                    "prompt", multiline=True, tooltip="Positive text prompt"
+                ),
+                IO.String.Input(
+                    "negative_prompt", multiline=True, tooltip="Negative text prompt"
+                ),
                 IO.Combo.Input(
                     "model_name",
                     options=KlingVideoGenModelName,
                     default="kling-v2-master",
                 ),
                 IO.Float.Input("cfg_scale", default=0.8, min=0.0, max=1.0),
-                IO.Combo.Input("mode", options=KlingVideoGenMode, default=KlingVideoGenMode.std),
+                IO.Combo.Input(
+                    "mode", options=KlingVideoGenMode, default=KlingVideoGenMode.std
+                ),
                 IO.Combo.Input(
                     "aspect_ratio",
                     options=KlingVideoGenAspectRatio,
                     default=KlingVideoGenAspectRatio.field_16_9,
                 ),
-                IO.Combo.Input("duration", options=KlingVideoGenDuration, default=KlingVideoGenDuration.field_5),
+                IO.Combo.Input(
+                    "duration",
+                    options=KlingVideoGenDuration,
+                    default=KlingVideoGenDuration.field_5,
+                ),
             ],
             outputs=[
                 IO.Video.Output(),
@@ -888,8 +938,12 @@ class KlingCameraControlI2VNode(IO.ComfyNode):
                     "start_frame",
                     tooltip="Reference Image - URL or Base64 encoded string, cannot exceed 10MB, resolution not less than 300*300px, aspect ratio between 1:2.5 ~ 2.5:1. Base64 should not include data:image prefix.",
                 ),
-                IO.String.Input("prompt", multiline=True, tooltip="Positive text prompt"),
-                IO.String.Input("negative_prompt", multiline=True, tooltip="Negative text prompt"),
+                IO.String.Input(
+                    "prompt", multiline=True, tooltip="Positive text prompt"
+                ),
+                IO.String.Input(
+                    "negative_prompt", multiline=True, tooltip="Negative text prompt"
+                ),
                 IO.Float.Input("cfg_scale", default=0.75, min=0.0, max=1.0),
                 IO.Combo.Input(
                     "aspect_ratio",
@@ -960,8 +1014,12 @@ class KlingStartEndFrameNode(IO.ComfyNode):
                     "end_frame",
                     tooltip="Reference Image - End frame control. URL or Base64 encoded string, cannot exceed 10MB, resolution not less than 300*300px. Base64 should not include data:image prefix.",
                 ),
-                IO.String.Input("prompt", multiline=True, tooltip="Positive text prompt"),
-                IO.String.Input("negative_prompt", multiline=True, tooltip="Negative text prompt"),
+                IO.String.Input(
+                    "prompt", multiline=True, tooltip="Positive text prompt"
+                ),
+                IO.String.Input(
+                    "negative_prompt", multiline=True, tooltip="Negative text prompt"
+                ),
                 IO.Float.Input("cfg_scale", default=0.5, min=0.0, max=1.0),
                 IO.Combo.Input(
                     "aspect_ratio",
@@ -1082,12 +1140,18 @@ class KlingVideoExtendNode(IO.ComfyNode):
             ApiEndpoint(path=f"{PATH_VIDEO_EXTEND}/{task_id}"),
             response_model=KlingVideoExtendResponse,
             estimated_duration=AVERAGE_DURATION_VIDEO_EXTEND,
-            status_extractor=lambda r: (r.data.task_status.value if r.data and r.data.task_status else None),
+            status_extractor=lambda r: (
+                r.data.task_status.value if r.data and r.data.task_status else None
+            ),
         )
         validate_video_result_response(final_response)
 
         video = get_video_from_response(final_response)
-        return IO.NodeOutput(await download_url_to_video_output(str(video.url)), str(video.id), str(video.duration))
+        return IO.NodeOutput(
+            await download_url_to_video_output(str(video.url)),
+            str(video.id),
+            str(video.duration),
+        )
 
 
 class KlingDualCharacterVideoEffectNode(IO.ComfyNode):
@@ -1168,7 +1232,10 @@ class KlingSingleImageVideoEffectNode(IO.ComfyNode):
             category="api node/video/Kling",
             description="Achieve different special effects when generating a video based on the effect_scene.",
             inputs=[
-                IO.Image.Input("image", tooltip=" Reference Image. URL or Base64 encoded string (without data:image prefix). File size cannot exceed 10MB, resolution not less than 300*300px, aspect ratio between 1:2.5 ~ 2.5:1"),
+                IO.Image.Input(
+                    "image",
+                    tooltip=" Reference Image. URL or Base64 encoded string (without data:image prefix). File size cannot exceed 10MB, resolution not less than 300*300px, aspect ratio between 1:2.5 ~ 2.5:1",
+                ),
                 IO.Combo.Input(
                     "effect_scene",
                     options=[i.value for i in KlingSingleImageEffectsScene],
@@ -1385,7 +1452,9 @@ class KlingVirtualTryOnNode(IO.ComfyNode):
             ApiEndpoint(path=f"{PATH_VIRTUAL_TRY_ON}/{task_id}"),
             response_model=KlingVirtualTryOnResponse,
             estimated_duration=AVERAGE_DURATION_VIRTUAL_TRY_ON,
-            status_extractor=lambda r: (r.data.task_status.value if r.data and r.data.task_status else None),
+            status_extractor=lambda r: (
+                r.data.task_status.value if r.data and r.data.task_status else None
+            ),
         )
         validate_image_result_response(final_response)
 
@@ -1404,8 +1473,12 @@ class KlingImageGenerationNode(IO.ComfyNode):
             category="api node/image/Kling",
             description="Kling Image Generation Node. Generate an image from a text prompt with an optional reference image.",
             inputs=[
-                IO.String.Input("prompt", multiline=True, tooltip="Positive text prompt"),
-                IO.String.Input("negative_prompt", multiline=True, tooltip="Negative text prompt"),
+                IO.String.Input(
+                    "prompt", multiline=True, tooltip="Positive text prompt"
+                ),
+                IO.String.Input(
+                    "negative_prompt", multiline=True, tooltip="Negative text prompt"
+                ),
                 IO.Combo.Input(
                     "image_type",
                     options=[i.value for i in KlingImageGenImageReferenceType],
@@ -1471,13 +1544,24 @@ class KlingImageGenerationNode(IO.ComfyNode):
         aspect_ratio: KlingImageGenAspectRatio,
         image: Optional[torch.Tensor] = None,
     ) -> IO.NodeOutput:
-        validate_string(prompt, field_name="prompt", min_length=1, max_length=MAX_PROMPT_LENGTH_IMAGE_GEN)
-        validate_string(negative_prompt, field_name="negative_prompt", max_length=MAX_PROMPT_LENGTH_IMAGE_GEN)
+        validate_string(
+            prompt,
+            field_name="prompt",
+            min_length=1,
+            max_length=MAX_PROMPT_LENGTH_IMAGE_GEN,
+        )
+        validate_string(
+            negative_prompt,
+            field_name="negative_prompt",
+            max_length=MAX_PROMPT_LENGTH_IMAGE_GEN,
+        )
 
         if image is None:
             image_type = None
         elif model_name == KlingImageGenModelName.kling_v1:
-            raise ValueError(f"The model {KlingImageGenModelName.kling_v1.value} does not support reference images.")
+            raise ValueError(
+                f"The model {KlingImageGenModelName.kling_v1.value} does not support reference images."
+            )
         else:
             image = tensor_to_base64_string(image)
 
@@ -1506,7 +1590,9 @@ class KlingImageGenerationNode(IO.ComfyNode):
             ApiEndpoint(path=f"{PATH_IMAGE_GENERATIONS}/{task_id}"),
             response_model=KlingImageGenerationsResponse,
             estimated_duration=AVERAGE_DURATION_IMAGE_GEN,
-            status_extractor=lambda r: (r.data.task_status.value if r.data and r.data.task_status else None),
+            status_extractor=lambda r: (
+                r.data.task_status.value if r.data and r.data.task_status else None
+            ),
         )
         validate_image_result_response(final_response)
 
